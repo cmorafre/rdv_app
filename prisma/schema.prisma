@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Usuários (para autenticação simples)
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  senha     String
+  nome      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("usuarios")
+}
+
+// Relatórios
+model Relatorio {
+  id          Int      @id @default(autoincrement())
+  titulo      String
+  dataInicio  DateTime @map("data_inicio")
+  dataFim     DateTime @map("data_fim")
+  destino     String?
+  proposito   String?
+  status      String   @default("em_andamento")
+  cliente     String?
+  observacoes String?
+  valorTotal  Decimal  @default(0) @map("valor_total")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relacionamentos
+  despesas    Despesa[]
+
+  @@map("relatorios")
+}
+
+// Categorias
+model Categoria {
+  id       Int      @id @default(autoincrement())
+  nome     String   @unique
+  icone    String?
+  cor      String?
+  ativa    Boolean  @default(true)
+  
+  // Relacionamentos
+  despesas Despesa[]
+
+  @@map("categorias")
+}
+
+// Veículos
+model Veiculo {
+  id              Int     @id @default(autoincrement())
+  tipo            String
+  marca           String?
+  modelo          String?
+  categoria       String?
+  combustivel     String?
+  identificacao   String? @unique
+  potencia        Int?
+  valorPorKm      Decimal @map("valor_por_km")
+  ativo           Boolean @default(true)
+  
+  // Relacionamentos
+  despesasQuilometragem DespesaQuilometragem[]
+
+  @@map("veiculos")
+}
+
+// Despesas
+model Despesa {
+  id               Int      @id @default(autoincrement())
+  relatorioId      Int      @map("relatorio_id")
+  categoriaId      Int      @map("categoria_id")
+  dataDespesa      DateTime @map("data_despesa")
+  descricao        String
+  fornecedor       String?
+  valor            Decimal
+  comprovanteUrl   String?  @map("comprovante_url")
+  observacoes      String?
+  reembolsavel     Boolean  @default(true)
+  reembolsada      Boolean  @default(false)
+  clienteACobrar   Boolean  @default(false) @map("cliente_a_cobrar")
+  createdAt        DateTime @default(now()) @map("created_at")
+  
+  // Relacionamentos
+  relatorio                Relatorio              @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
+  categoria                Categoria              @relation(fields: [categoriaId], references: [id])
+  despesaQuilometragem     DespesaQuilometragem?
+
+  @@map("despesas")
+}
+
+// Despesas de Quilometragem
+model DespesaQuilometragem {
+  id            Int     @id @default(autoincrement())
+  despesaId     Int     @unique @map("despesa_id")
+  veiculoId     Int     @map("veiculo_id")
+  origem        String
+  destino       String
+  distanciaKm   Decimal @map("distancia_km")
+  valorPorKm    Decimal @map("valor_por_km")
+  percursoDados String? @map("percurso_dados")
+  
+  // Relacionamentos
+  despesa  Despesa @relation(fields: [despesaId], references: [id], onDelete: Cascade)
+  veiculo  Veiculo @relation(fields: [veiculoId], references: [id])
+
+  @@map("despesas_quilometragem")
+}
