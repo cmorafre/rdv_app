@@ -14,17 +14,64 @@ const RelatorioCreateSchema = z.object({
   observacoes: z.string().optional().nullable(),
 })
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await requireAuth()
-    if (!user) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 }
-      )
+    const authResult = await requireAuth(request)
+    
+    // Se requireAuth retorna NextResponse, é um erro
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+    
+    const user = authResult
+
+    const { searchParams } = new URL(request.url)
+    
+    // Paginação
+    const page = parseInt(searchParams.get('page') || '1')
+    const pageSize = parseInt(searchParams.get('pageSize') || '20')
+    const skip = (page - 1) * pageSize
+
+    // Filtros
+    const busca = searchParams.get('busca') || ''
+    const status = searchParams.get('status') || ''
+    const dataInicio = searchParams.get('dataInicio')
+    const dataFim = searchParams.get('dataFim')
+    const cliente = searchParams.get('cliente') || ''
+
+    // Construir where clause
+    const whereClause: Record<string, any> = {}
+
+    if (busca) {
+      whereClause.OR = [
+        { titulo: { contains: busca, mode: 'insensitive' } },
+        { destino: { contains: busca, mode: 'insensitive' } },
+        { cliente: { contains: busca, mode: 'insensitive' } }
+      ]
     }
 
+    if (status) {
+      whereClause.status = status
+    }
+
+    if (cliente) {
+      whereClause.cliente = { contains: cliente, mode: 'insensitive' }
+    }
+
+    if (dataInicio) {
+      whereClause.dataInicio = { gte: new Date(dataInicio) }
+    }
+
+    if (dataFim) {
+      whereClause.dataFim = { lte: new Date(dataFim) }
+    }
+
+    // Contar total de registros
+    const total = await prisma.relatorio.count({ where: whereClause })
+
+    // Buscar relatórios com paginação
     const relatorios = await prisma.relatorio.findMany({
+      where: whereClause,
       include: {
         despesas: {
           include: {
@@ -34,7 +81,9 @@ export async function GET() {
       },
       orderBy: {
         createdAt: 'desc'
-      }
+      },
+      skip,
+      take: pageSize
     })
 
     const relatoriosComTotal = relatorios.map(relatorio => ({
@@ -43,7 +92,13 @@ export async function GET() {
       totalDespesas: relatorio.despesas.length
     }))
 
-    return NextResponse.json(relatoriosComTotal)
+    return NextResponse.json({
+      relatorios: relatoriosComTotal,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize)
+    })
   } catch (error) {
     console.error('Erro ao buscar relatórios:', error)
     return NextResponse.json(
@@ -55,13 +110,14 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAuth()
-    if (!user) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 }
-      )
+    const authResult = await requireAuth(request)
+    
+    // Se requireAuth retorna NextResponse, é um erro
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+    
+    const user = authResult
 
     const body = await request.json()
     const validatedData = RelatorioCreateSchema.parse(body)

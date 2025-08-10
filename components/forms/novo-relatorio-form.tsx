@@ -19,14 +19,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import { toast } from "sonner"
 
-const RelatorioSchema = z.object({
-  titulo: z.string().min(1, "Título é obrigatório"),
+const RelatorioFormSchema = z.object({
+  titulo: z.string().min(1, "Título é obrigatório").max(255, "Título muito longo"),
   dataInicio: z.string().min(1, "Data de início é obrigatória"),
   dataFim: z.string().min(1, "Data de fim é obrigatória"),
   destino: z.string().optional(),
   proposito: z.string().optional(),
-  status: z.enum(["em_andamento", "concluido", "cancelado"]).default("em_andamento"),
+  status: z.enum(["em_andamento", "finalizado", "reembolsado"]).default("em_andamento"),
   cliente: z.string().optional(),
   observacoes: z.string().optional(),
 }).refine((data) => {
@@ -35,18 +36,18 @@ const RelatorioSchema = z.object({
   }
   return true
 }, {
-  message: "Data fim deve ser maior ou igual à data início",
+  message: "Data de fim deve ser posterior à data de início",
   path: ["dataFim"],
 })
 
-type RelatorioFormValues = z.infer<typeof RelatorioSchema>
+type RelatorioFormValues = z.infer<typeof RelatorioFormSchema>
 
 export function NovoRelatorioForm() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<RelatorioFormValues>({
-    resolver: zodResolver(RelatorioSchema),
+    resolver: zodResolver(RelatorioFormSchema),
     defaultValues: {
       titulo: "",
       dataInicio: "",
@@ -72,14 +73,16 @@ export function NovoRelatorioForm() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || "Erro ao criar relatório")
+        toast.error(error.error || "Erro ao criar relatório")
+        return
       }
 
-      const relatorio = await response.json()
+      await response.json()
+      toast.success("Relatório criado com sucesso!")
       router.push(`/relatorios/todos`)
     } catch (error) {
       console.error("Erro ao criar relatório:", error)
-      alert("Erro ao criar relatório. Tente novamente.")
+      toast.error("Erro ao criar relatório. Tente novamente.")
     } finally {
       setIsLoading(false)
     }
@@ -228,8 +231,8 @@ export function NovoRelatorioForm() {
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                      <SelectItem value="concluido">Concluído</SelectItem>
-                      <SelectItem value="cancelado">Cancelado</SelectItem>
+                      <SelectItem value="finalizado">Finalizado</SelectItem>
+                      <SelectItem value="reembolsado">Reembolsado</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

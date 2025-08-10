@@ -1,16 +1,24 @@
 import { AppLayout } from "@/components/layouts/app-layout"
+import { NovaDespesaForm } from "@/components/forms/nova-despesa-form"
 
 export default function NovaDespesa() {
   const breadcrumbs = [
     { label: "Dashboard", href: "/" },
+    { label: "Despesas", href: "/despesas/todas" },
     { label: "Nova Despesa" }
   ]
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
-      <h1 className="text-2xl font-bold">Nova Despesa</h1>
-      <div className="bg-muted/50 flex-1 rounded-xl p-4">
-        <p>Formulário de criação de despesa será implementado aqui.</p>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Nova Despesa</h1>
+          <p className="text-muted-foreground">
+            Registre uma nova despesa em um dos seus relatórios
+          </p>
+        </div>
+        
+        <NovaDespesaForm />
       </div>
     </AppLayout>
   )

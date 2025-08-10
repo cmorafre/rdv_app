@@ -59,16 +59,18 @@ model Categoria {
 
 // Veículos
 model Veiculo {
-  id              Int     @id @default(autoincrement())
+  id              Int      @id @default(autoincrement())
   tipo            String
   marca           String?
   modelo          String?
   categoria       String?
   combustivel     String?
-  identificacao   String? @unique
+  identificacao   String   @unique
   potencia        Int?
-  valorPorKm      Decimal @map("valor_por_km")
-  ativo           Boolean @default(true)
+  valorPorKm      Decimal  @map("valor_por_km")
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
   
   // Relacionamentos
   despesasQuilometragem DespesaQuilometragem[]

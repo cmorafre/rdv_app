@@ -3,15 +3,16 @@ import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
-const RelatorioUpdateSchema = z.object({
-  titulo: z.string().min(1, "Título é obrigatório").optional(),
-  dataInicio: z.string().transform((val) => new Date(val)).optional(),
-  dataFim: z.string().transform((val) => new Date(val)).optional(),
-  destino: z.string().optional().nullable(),
-  proposito: z.string().optional().nullable(),
-  status: z.string().optional(),
-  cliente: z.string().optional().nullable(),
-  observacoes: z.string().optional().nullable(),
+const VeiculoUpdateSchema = z.object({
+  tipo: z.string().min(1, "Tipo é obrigatório").optional(),
+  marca: z.string().optional().nullable(),
+  modelo: z.string().optional().nullable(),
+  categoria: z.string().optional().nullable(),
+  combustivel: z.string().optional().nullable(),
+  identificacao: z.string().min(1, "Identificação é obrigatória").optional(),
+  potencia: z.number().int().positive().optional().nullable(),
+  valorPorKm: z.number().positive("Valor por Km deve ser positivo").optional(),
+  ativo: z.boolean().optional(),
 })
 
 export async function GET(
@@ -35,41 +36,42 @@ export async function GET(
       )
     }
 
-    const relatorio = await prisma.relatorio.findUnique({
+    const veiculo = await prisma.veiculo.findUnique({
       where: { id },
       include: {
-        despesas: {
+        despesasQuilometragem: {
           include: {
-            categoria: true,
-            despesaQuilometragem: {
+            despesa: {
               include: {
-                veiculo: true
+                relatorio: {
+                  select: {
+                    id: true,
+                    titulo: true
+                  }
+                }
               }
             }
           },
           orderBy: {
-            dataDespesa: 'desc'
-          }
+            despesa: {
+              dataDespesa: 'desc'
+            }
+          },
+          take: 10 // Últimas 10 despesas de quilometragem
         }
       }
     })
 
-    if (!relatorio) {
+    if (!veiculo) {
       return NextResponse.json(
-        { error: "Relatório não encontrado" },
+        { error: "Veículo não encontrado" },
         { status: 404 }
       )
     }
 
-    const relatorioComTotal = {
-      ...relatorio,
-      valorTotal: relatorio.despesas.reduce((total, despesa) => total + Number(despesa.valor), 0),
-      totalDespesas: relatorio.despesas.length
-    }
-
-    return NextResponse.json(relatorioComTotal)
+    return NextResponse.json(veiculo)
   } catch (error) {
-    console.error('Erro ao buscar relatório:', error)
+    console.error('Erro ao buscar veículo:', error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -99,50 +101,39 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const validatedData = RelatorioUpdateSchema.parse(body)
+    const validatedData = VeiculoUpdateSchema.parse(body)
 
-    if (validatedData.dataInicio && validatedData.dataFim && validatedData.dataFim < validatedData.dataInicio) {
-      return NextResponse.json(
-        { error: "Data fim deve ser maior que data início" },
-        { status: 400 }
-      )
-    }
-
-    const existingRelatorio = await prisma.relatorio.findUnique({
+    const existingVeiculo = await prisma.veiculo.findUnique({
       where: { id }
     })
 
-    if (!existingRelatorio) {
+    if (!existingVeiculo) {
       return NextResponse.json(
-        { error: "Relatório não encontrado" },
+        { error: "Veículo não encontrado" },
         { status: 404 }
       )
     }
 
-    const relatorio = await prisma.relatorio.update({
-      where: { id },
-      data: validatedData,
-      include: {
-        despesas: {
-          include: {
-            categoria: true,
-            despesaQuilometragem: {
-              include: {
-                veiculo: true
-              }
-            }
-          }
-        }
-      }
-    })
+    // Se está mudando a identificação, verificar se não existe outro veículo com a mesma
+    if (validatedData.identificacao && validatedData.identificacao !== existingVeiculo.identificacao) {
+      const duplicateVeiculo = await prisma.veiculo.findUnique({
+        where: { identificacao: validatedData.identificacao }
+      })
 
-    const relatorioComTotal = {
-      ...relatorio,
-      valorTotal: relatorio.despesas.reduce((total, despesa) => total + Number(despesa.valor), 0),
-      totalDespesas: relatorio.despesas.length
+      if (duplicateVeiculo) {
+        return NextResponse.json(
+          { error: "Já existe um veículo com esta identificação" },
+          { status: 400 }
+        )
+      }
     }
 
-    return NextResponse.json(relatorioComTotal)
+    const veiculo = await prisma.veiculo.update({
+      where: { id },
+      data: validatedData
+    })
+
+    return NextResponse.json(veiculo)
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -151,7 +142,7 @@ export async function PUT(
       )
     }
 
-    console.error('Erro ao atualizar relatório:', error)
+    console.error('Erro ao atualizar veículo:', error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
@@ -180,34 +171,34 @@ export async function DELETE(
       )
     }
 
-    const existingRelatorio = await prisma.relatorio.findUnique({
+    const existingVeiculo = await prisma.veiculo.findUnique({
       where: { id },
       include: {
-        despesas: true
+        despesasQuilometragem: true
       }
     })
 
-    if (!existingRelatorio) {
+    if (!existingVeiculo) {
       return NextResponse.json(
-        { error: "Relatório não encontrado" },
+        { error: "Veículo não encontrado" },
         { status: 404 }
       )
     }
 
-    if (existingRelatorio.despesas.length > 0) {
+    if (existingVeiculo.despesasQuilometragem.length > 0) {
       return NextResponse.json(
-        { error: "Não é possível excluir um relatório que possui despesas associadas" },
+        { error: "Não é possível excluir um veículo que possui despesas de quilometragem associadas" },
         { status: 400 }
       )
     }
 
-    await prisma.relatorio.delete({
+    await prisma.veiculo.delete({
       where: { id }
     })
 
-    return NextResponse.json({ message: "Relatório excluído com sucesso" })
+    return NextResponse.json({ message: "Veículo excluído com sucesso" })
   } catch (error) {
-    console.error('Erro ao excluir relatório:', error)
+    console.error('Erro ao excluir veículo:', error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }
