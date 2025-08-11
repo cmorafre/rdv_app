@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db/prisma"
+import fs from 'fs/promises'
+import path from 'path'
 
 export async function GET(
   request: NextRequest,
@@ -34,7 +36,8 @@ export async function GET(
               include: {
                 veiculo: true
               }
-            }
+            },
+            comprovantes: true
           },
           orderBy: {
             dataDespesa: 'desc'
@@ -59,6 +62,50 @@ export async function GET(
       )
     }
 
+    // Carregar imagens dos comprovantes em base64
+    const despesasComImagens = await Promise.all(
+      relatorio.despesas.map(async (despesa) => {
+        const comprovantesComImagens = await Promise.all(
+          (despesa.comprovantes || []).map(async (comprovante) => {
+            try {
+              // Construir caminho do arquivo
+              const filePath = path.join(process.cwd(), 'public', comprovante.url)
+              
+              // Verificar se arquivo existe
+              try {
+                await fs.access(filePath)
+              } catch {
+                console.warn(`Arquivo não encontrado: ${filePath}`)
+                return { ...comprovante, base64Data: null }
+              }
+              
+              // Ler arquivo e converter para base64
+              const fileBuffer = await fs.readFile(filePath)
+              const base64Data = fileBuffer.toString('base64')
+              
+              return {
+                ...comprovante,
+                base64Data
+              }
+            } catch (error) {
+              console.error(`Erro ao carregar comprovante ${comprovante.id}:`, error)
+              return { ...comprovante, base64Data: null }
+            }
+          })
+        )
+        
+        return {
+          ...despesa,
+          categoria: despesa.categoria,
+          despesaQuilometragem: despesa.despesaQuilometragem ? {
+            ...despesa.despesaQuilometragem,
+            veiculo: despesa.despesaQuilometragem.veiculo
+          } : null,
+          comprovantes: comprovantesComImagens
+        }
+      })
+    )
+
     // Retornar dados JSON para o cliente gerar o PDF
     const pdfData = {
       relatorio: {
@@ -67,14 +114,9 @@ export async function GET(
         dataFim: relatorio.dataFim,
         status: relatorio.status,
         usuario: usuario,
-        despesas: relatorio.despesas.map(despesa => ({
-          ...despesa,
-          categoria: despesa.categoria,
-          despesaQuilometragem: despesa.despesaQuilometragem ? {
-            ...despesa.despesaQuilometragem,
-            veiculo: despesa.despesaQuilometragem.veiculo
-          } : null
-        }))
+        despesas: despesasComImagens,
+        cliente: relatorio.cliente,
+        proposito: relatorio.proposito
       }
     }
 
@@ -89,22 +131,3 @@ export async function GET(
   }
 }
 
-function formatDate(dateString: string, withSlashes: boolean = true): string {
-  const date = new Date(dateString)
-  if (withSlashes) {
-    return date.toLocaleDateString("pt-BR")
-  } else {
-    return date.toISOString().split('T')[0].replace(/-/g, '')
-  }
-}
-
-function formatDateTime(date: Date): string {
-  return date.toLocaleString("pt-BR")
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  }).format(value)
-}

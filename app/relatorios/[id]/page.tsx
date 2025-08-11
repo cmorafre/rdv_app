@@ -114,7 +114,7 @@ export default function VisualizarRelatorio() {
       const { generateRelatorioPDF } = await import('@/lib/pdf-generator')
       
       // Gerar PDF
-      const pdfBytes = generateRelatorioPDF(relatorioData)
+      const pdfBytes = await generateRelatorioPDF(relatorioData)
       
       // Criar blob e download
       const blob = new Blob([pdfBytes], { type: 'application/pdf' })

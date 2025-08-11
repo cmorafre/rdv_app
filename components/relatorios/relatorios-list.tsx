@@ -102,7 +102,7 @@ export function RelatoriosList({ relatorios, loading, onDelete }: RelatoriosList
       const { generateRelatorioPDF } = await import('@/lib/pdf-generator')
       
       // Gerar PDF
-      const pdfBytes = generateRelatorioPDF(relatorio)
+      const pdfBytes = await generateRelatorioPDF(relatorio)
       
       // Criar blob e download
       const blob = new Blob([pdfBytes], { type: 'application/pdf' })
