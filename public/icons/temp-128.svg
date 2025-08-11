@@ -1,0 +1,28 @@
+<svg width="128" height="128" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background com gradiente -->
+  <rect width="512" height="512" rx="64" fill="url(#gradient)"/>
+  
+  <!-- Ícone de relatório/documento -->
+  <path d="M128 96C128 86.0589 136.059 78 146 78H298L384 164V416C384 425.941 375.941 434 366 434H146C136.059 434 128 425.941 128 416V96Z" fill="white" fill-opacity="0.95"/>
+  
+  <!-- Linhas do documento -->
+  <rect x="160" y="200" width="192" height="8" rx="4" fill="#1e293b" fill-opacity="0.8"/>
+  <rect x="160" y="230" width="144" height="8" rx="4" fill="#1e293b" fill-opacity="0.6"/>
+  <rect x="160" y="260" width="168" height="8" rx="4" fill="#1e293b" fill-opacity="0.6"/>
+  <rect x="160" y="290" width="120" height="8" rx="4" fill="#1e293b" fill-opacity="0.6"/>
+  
+  <!-- Símbolo de dinheiro/despesas -->
+  <circle cx="320" cy="350" r="32" fill="#16a34a" fill-opacity="0.9"/>
+  <path d="M312 334V342H308V350H312V358H320V350H324C327.314 350 330 347.314 330 344C330 340.686 327.314 338 324 338H320V334H328V326H320V322H312V326H308C304.686 326 302 328.686 302 332C302 335.314 304.686 338 308 338H312V342H304V350H308V358H312Z" fill="white"/>
+  
+  <!-- Canto dobrado do documento -->
+  <path d="M298 78L384 164H316C306.059 164 298 155.941 298 146V78Z" fill="white" fill-opacity="0.7"/>
+  
+  <!-- Gradiente -->
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
