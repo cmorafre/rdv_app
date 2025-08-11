@@ -13,6 +13,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 interface BreadcrumbItem {
   label: string
@@ -54,6 +55,9 @@ export function AppLayout({ children, breadcrumbs }: AppLayoutProps) {
                 ))}
               </BreadcrumbList>
             </Breadcrumb>
+          </div>
+          <div className="ml-auto px-4">
+            <ThemeToggle />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">

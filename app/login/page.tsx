@@ -9,11 +9,13 @@ import { LoginFormData, loginSchema } from '@/lib/validations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const { setUser } = useAuth()
 
   const {
     register,
@@ -40,6 +42,11 @@ export default function LoginPage() {
 
       if (!response.ok) {
         throw new Error(result.error || 'Erro no login')
+      }
+
+      // Definir usuário no store
+      if (result.user) {
+        setUser(result.user)
       }
 
       // Redirecionar para dashboard

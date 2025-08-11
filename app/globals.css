@@ -78,6 +78,37 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Ocultar ferramentas de desenvolvimento do Next.js */
+[data-nextjs-dev-overlay-root] {
+  display: none !important;
+}
+
+[data-nextjs-dev-indicator] {
+  display: none !important;
+}
+
+/* Ocultar interface de preferências de desenvolvimento */
+[role="dialog"][aria-labelledby*="preferences" i],
+[role="dialog"][aria-labelledby*="dev" i],
+[data-dev-overlay-root],
+[data-dev-indicator] {
+  display: none !important;
+}
+
+/* Ocultar interface de desenvolvimento que aparece no dropdown do usuário */
+[data-radix-dropdown-content] [role="menuitem"]:has-text("Route"),
+[data-radix-dropdown-content] [role="menuitem"]:has-text("Try Turbopack"),
+[data-radix-dropdown-content] [role="menuitem"]:has-text("Preferences") {
+  display: none !important;
+}
+
+/* Alternativa: ocultar qualquer item de menu que contenha "Route" ou "Preferences" */
+[role="menuitem"]:has([data-testid*="route"]),
+[role="menuitem"]:has([data-testid*="turbopack"]),
+[role="menuitem"]:has([data-testid*="preferences"]) {
+  display: none !important;
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

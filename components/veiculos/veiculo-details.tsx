@@ -22,7 +22,7 @@ interface Veiculo {
   updatedAt: string
   despesasQuilometragem?: {
     id: number
-    quilometragem: number
+    distanciaKm: number
     despesa: {
       id: number
       descricao: string
@@ -258,7 +258,7 @@ export function VeiculoDetails({ veiculo }: VeiculoDetailsProps) {
                           {item.despesa.descricao}
                         </Link>
                       </TableCell>
-                      <TableCell>{item.quilometragem.toLocaleString('pt-BR')} km</TableCell>
+                      <TableCell>{item.distanciaKm.toLocaleString('pt-BR')} km</TableCell>
                       <TableCell>{formatCurrency(item.despesa.valor)}</TableCell>
                       <TableCell>
                         <Link 

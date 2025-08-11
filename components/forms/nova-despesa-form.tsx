@@ -23,6 +23,9 @@ import {
 import { Save, ArrowLeft, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { CategoriaIcon } from "@/components/categorias/categoria-icon"
+import { FileSelector } from "@/components/ui/file-selector"
+import { AddressAutocomplete } from "@/components/maps/address-autocomplete"
+import { DistanceCalculator } from "@/components/maps/distance-calculator"
 
 const createDespesaSchema = (isQuilometragem: boolean) => z.object({
   relatorioId: z.string().min(1, "Relatório é obrigatório").transform(val => parseInt(val)),
@@ -97,6 +100,7 @@ export function NovaDespesaForm() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([])
   const [loadingData, setLoadingData] = useState(true)
   const [isQuilometragem, setIsQuilometragem] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -208,6 +212,36 @@ export function NovaDespesaForm() {
     }
   }, [form.watch("veiculoId"), form.watch("quilometragem"), veiculos, isQuilometragem])
 
+  const uploadFiles = async (despesaId: number) => {
+    if (selectedFiles.length === 0) return
+
+    const uploadPromises = selectedFiles.map(async (file) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('despesaId', despesaId.toString())
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(`Erro ao enviar ${file.name}: ${error.error}`)
+      }
+
+      return response.json()
+    })
+
+    try {
+      await Promise.all(uploadPromises)
+      toast.success(`${selectedFiles.length} comprovante(s) enviado(s) com sucesso`)
+    } catch (error) {
+      console.error('Erro no upload dos arquivos:', error)
+      toast.error(error instanceof Error ? error.message : 'Erro no upload de alguns arquivos')
+    }
+  }
+
   const onSubmit = async (data: DespesaFormValues) => {
     setIsLoading(true)
     try {
@@ -229,7 +263,13 @@ export function NovaDespesaForm() {
         return
       }
 
+      const despesaCriada = await response.json()
       toast.success("Despesa criada com sucesso!")
+
+      // Fazer upload dos arquivos se existirem
+      if (selectedFiles.length > 0) {
+        await uploadFiles(despesaCriada.id)
+      }
       
       // Se veio de um relatório específico, volta para ele
       if (preSelectedRelatorioId) {
@@ -415,13 +455,15 @@ export function NovaDespesaForm() {
                       <FormItem>
                         <FormLabel>Origem *</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Local de partida"
-                            {...field}
+                          <AddressAutocomplete
+                            value={field.value || ""}
+                            onChange={(value) => field.onChange(value)}
+                            placeholder="Digite o endereço de origem"
+                            disabled={isLoading}
                           />
                         </FormControl>
                         <FormDescription>
-                          Endereço ou cidade de origem
+                          Endereço ou cidade de origem (com autocomplete)
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -435,19 +477,32 @@ export function NovaDespesaForm() {
                       <FormItem>
                         <FormLabel>Destino *</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Local de chegada"
-                            {...field}
+                          <AddressAutocomplete
+                            value={field.value || ""}
+                            onChange={(value) => field.onChange(value)}
+                            placeholder="Digite o endereço de destino"
+                            disabled={isLoading}
                           />
                         </FormControl>
                         <FormDescription>
-                          Endereço ou cidade de destino
+                          Endereço ou cidade de destino (com autocomplete)
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
+
+                {/* Calculadora de Distância */}
+                {form.watch("origem") && form.watch("destino") && (
+                  <DistanceCalculator
+                    origin={form.watch("origem")}
+                    destination={form.watch("destino")}
+                    onDistanceCalculated={(distanceKm) => {
+                      form.setValue("quilometragem", distanceKm.toString())
+                    }}
+                  />
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
@@ -647,6 +702,20 @@ export function NovaDespesaForm() {
               />
             </div>
 
+            {/* Comprovantes */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Comprovantes</h3>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Anexe comprovantes da despesa (recibos, notas fiscais, cupons, etc.)
+                </p>
+                <FileSelector
+                  onFilesChange={setSelectedFiles}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
             {/* Botões de Ação */}
             <div className="flex justify-end gap-2 pt-6">
               <Button
@@ -661,12 +730,18 @@ export function NovaDespesaForm() {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Salvando...
+                    {selectedFiles.length > 0 
+                      ? `Salvando e enviando ${selectedFiles.length} arquivo(s)...`
+                      : 'Salvando...'
+                    }
                   </>
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />
-                    Salvar Despesa
+                    {selectedFiles.length > 0 
+                      ? `Salvar e Enviar ${selectedFiles.length} Arquivo(s)`
+                      : 'Salvar Despesa'
+                    }
                   </>
                 )}
               </Button>

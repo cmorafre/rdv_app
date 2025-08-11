@@ -12,6 +12,7 @@ import {
   List,
   Plane,
   Tag,
+  Users,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -157,7 +158,20 @@ const getRdvNavigation = (pathname: string) => {
         title: "Configurações",
         url: "/configuracoes",
         icon: Settings2,
-        isActive: pathname === "/configuracoes",
+        isActive: isItemActive({
+          url: "/configuracoes",
+          items: [
+            { url: "/configuracoes/usuarios" }
+          ]
+        }),
+        items: [
+          {
+            title: "Usuários",
+            url: "/configuracoes/usuarios",
+            icon: Users,
+            isActive: pathname === "/configuracoes/usuarios" || pathname.startsWith("/configuracoes/usuarios/"),
+          },
+        ],
       },
     ],
   }

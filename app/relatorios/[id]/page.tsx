@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/layouts/app-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Edit, ArrowLeft } from "lucide-react"
+import { Edit, ArrowLeft, Download } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { DespesasDoRelatorio } from "@/components/relatorios/despesas-do-relatorio"
@@ -54,6 +54,7 @@ export default function VisualizarRelatorio() {
   const router = useRouter()
   const [relatorio, setRelatorio] = useState<Relatorio | null>(null)
   const [loading, setLoading] = useState(true)
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
 
   const id = params.id as string
 
@@ -93,6 +94,46 @@ export default function VisualizarRelatorio() {
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("pt-BR")
+  }
+
+  const handleDownloadPdf = async () => {
+    if (!relatorio) return
+
+    setDownloadingPdf(true)
+    try {
+      // Buscar dados do relatório
+      const response = await fetch(`/api/relatorios/${id}/pdf`)
+
+      if (!response.ok) {
+        throw new Error('Erro ao buscar dados do relatório')
+      }
+
+      const { relatorio: relatorioData } = await response.json()
+
+      // Importar dinamicamente o gerador de PDF
+      const { generateRelatorioPDF } = await import('@/lib/pdf-generator')
+      
+      // Gerar PDF
+      const pdfBytes = generateRelatorioPDF(relatorioData)
+      
+      // Criar blob e download
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `relatorio-${relatorio.titulo.replace(/[^a-zA-Z0-9]/g, '-')}-${formatDate(new Date().toISOString()).replace(/\//g, '-')}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast.success('PDF gerado com sucesso!')
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error)
+      toast.error('Erro ao gerar PDF. Tente novamente.')
+    } finally {
+      setDownloadingPdf(false)
+    }
   }
 
   if (loading) {
@@ -147,6 +188,14 @@ export default function VisualizarRelatorio() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button
+              onClick={handleDownloadPdf}
+              disabled={downloadingPdf}
+              variant="secondary"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {downloadingPdf ? 'Gerando PDF...' : 'Download PDF'}
+            </Button>
             <Link href={`/relatorios/${relatorio.id}/editar`}>
               <Button>
                 <Edit className="h-4 w-4 mr-2" />

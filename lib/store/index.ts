@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
 
 interface User {
   id: number
@@ -19,17 +18,12 @@ interface AppState {
   logout: () => void
 }
 
-export const useAppStore = create<AppState>()(
-  devtools(
-    (set) => ({
-      isLoading: false,
-      setLoading: (loading) => set({ isLoading: loading }),
-      
-      user: null,
-      isAuthenticated: false,
-      setUser: (user) => set({ user, isAuthenticated: !!user }),
-      logout: () => set({ user: null, isAuthenticated: false }),
-    }),
-    { name: 'rdv-store' }
-  )
-)
+export const useAppStore = create<AppState>()((set) => ({
+  isLoading: false,
+  setLoading: (loading) => set({ isLoading: loading }),
+  
+  user: null,
+  isAuthenticated: false,
+  setUser: (user) => set({ user, isAuthenticated: !!user }),
+  logout: () => set({ user: null, isAuthenticated: false }),
+}))

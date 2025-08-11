@@ -103,6 +103,180 @@ async function main() {
   } else {
     console.log('ℹ️ Relatórios já existem, pulando criação')
   }
+
+  // Criar veículos de exemplo
+  const veiculos = [
+    {
+      tipo: 'Carro',
+      marca: 'Toyota',
+      modelo: 'Corolla',
+      categoria: 'Sedan',
+      combustivel: 'Flex',
+      identificacao: 'ABC-1234',
+      potencia: 154,
+      valorPorKm: 0.65
+    },
+    {
+      tipo: 'Carro',
+      marca: 'Volkswagen',
+      modelo: 'Gol',
+      categoria: 'Hatch',
+      combustivel: 'Flex',
+      identificacao: 'DEF-5678',
+      potencia: 120,
+      valorPorKm: 0.55
+    },
+    {
+      tipo: 'Moto',
+      marca: 'Honda',
+      modelo: 'CG 160',
+      categoria: 'Street',
+      combustivel: 'Gasolina',
+      identificacao: 'MOT-9876',
+      potencia: 162,
+      valorPorKm: 0.25
+    }
+  ]
+
+  // Verificar se já existem veículos
+  const existingVehicles = await prisma.veiculo.count()
+  
+  if (existingVehicles === 0) {
+    for (const veiculo of veiculos) {
+      await prisma.veiculo.create({
+        data: veiculo
+      })
+    }
+    console.log('✅ Veículos de exemplo criados')
+  } else {
+    console.log('ℹ️ Veículos já existem, pulando criação')
+  }
+
+  // Criar despesas de exemplo
+  const existingExpenses = await prisma.despesa.count()
+  
+  if (existingExpenses === 0) {
+    // Buscar dados necessários
+    const relatorioSP = await prisma.relatorio.findFirst({
+      where: { titulo: 'Viagem São Paulo - Janeiro 2024' }
+    })
+    const relatorioRJ = await prisma.relatorio.findFirst({
+      where: { titulo: 'Treinamento Rio de Janeiro' }
+    })
+    const categoriaCombustivel = await prisma.categoria.findFirst({
+      where: { nome: 'Combustível' }
+    })
+    const categoriaHotel = await prisma.categoria.findFirst({
+      where: { nome: 'Hotel' }
+    })
+    const categoriaRestaurante = await prisma.categoria.findFirst({
+      where: { nome: 'Restaurante' }
+    })
+    const categoriaQuilometragem = await prisma.categoria.findFirst({
+      where: { nome: 'Quilometragem' }
+    })
+    const veiculo = await prisma.veiculo.findFirst({
+      where: { identificacao: 'ABC-1234' }
+    })
+
+    if (relatorioSP && categoriaCombustivel && categoriaHotel && categoriaRestaurante) {
+      // Despesas do relatório SP
+      await prisma.despesa.create({
+        data: {
+          relatorioId: relatorioSP.id,
+          categoriaId: categoriaCombustivel.id,
+          dataDespesa: new Date('2024-01-15'),
+          descricao: 'Abastecimento para viagem',
+          fornecedor: 'Posto Shell',
+          valor: 120.50,
+          observacoes: 'Gasolina comum',
+          reembolsavel: true,
+          reembolsada: false,
+          clienteACobrar: true
+        }
+      })
+
+      await prisma.despesa.create({
+        data: {
+          relatorioId: relatorioSP.id,
+          categoriaId: categoriaHotel.id,
+          dataDespesa: new Date('2024-01-15'),
+          descricao: 'Hotel Copacabana Palace',
+          fornecedor: 'Copacabana Palace',
+          valor: 450.00,
+          observacoes: 'Quarto standard - 3 diárias',
+          reembolsavel: true,
+          reembolsada: true,
+          clienteACobrar: false
+        }
+      })
+
+      await prisma.despesa.create({
+        data: {
+          relatorioId: relatorioSP.id,
+          categoriaId: categoriaRestaurante.id,
+          dataDespesa: new Date('2024-01-16'),
+          descricao: 'Jantar de negócios',
+          fornecedor: 'Restaurante Fasano',
+          valor: 280.00,
+          observacoes: 'Jantar com cliente',
+          reembolsavel: true,
+          reembolsada: false,
+          clienteACobrar: true
+        }
+      })
+
+      // Despesa de quilometragem
+      if (categoriaQuilometragem && veiculo) {
+        const despesaQuilometragem = await prisma.despesa.create({
+          data: {
+            relatorioId: relatorioSP.id,
+            categoriaId: categoriaQuilometragem.id,
+            dataDespesa: new Date('2024-01-15'),
+            descricao: 'Deslocamento São Paulo',
+            valor: 195.00, // 300km * 0.65
+            observacoes: 'Ida e volta ao centro da cidade',
+            reembolsavel: true,
+            reembolsada: false,
+            clienteACobrar: true
+          }
+        })
+
+        // Criar registro de quilometragem
+        await prisma.despesaQuilometragem.create({
+          data: {
+            despesaId: despesaQuilometragem.id,
+            veiculoId: veiculo.id,
+            origem: 'Campinas - SP',
+            destino: 'São Paulo - SP',
+            distanciaKm: 300,
+            valorPorKm: 0.65
+          }
+        })
+      }
+    }
+
+    if (relatorioRJ && categoriaRestaurante) {
+      await prisma.despesa.create({
+        data: {
+          relatorioId: relatorioRJ.id,
+          categoriaId: categoriaRestaurante.id,
+          dataDespesa: new Date('2024-02-10'),
+          descricao: 'Almoço durante treinamento',
+          fornecedor: 'Restaurante Aprazível',
+          valor: 85.00,
+          observacoes: 'Almoço executivo',
+          reembolsavel: true,
+          reembolsada: true,
+          clienteACobrar: false
+        }
+      })
+    }
+
+    console.log('✅ Despesas de exemplo criadas')
+  } else {
+    console.log('ℹ️ Despesas já existem, pulando criação')
+  }
 }
 
 main()

@@ -55,7 +55,8 @@ export async function GET(
           include: {
             veiculo: true
           }
-        }
+        },
+        comprovantes: true
       }
     })
 
@@ -190,7 +191,8 @@ export async function PUT(
             include: {
               veiculo: true
             }
-          }
+          },
+          comprovantes: true
         }
       })
 

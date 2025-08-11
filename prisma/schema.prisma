@@ -87,7 +87,6 @@ model Despesa {
   descricao        String
   fornecedor       String?
   valor            Decimal
-  comprovanteUrl   String?  @map("comprovante_url")
   observacoes      String?
   reembolsavel     Boolean  @default(true)
   reembolsada      Boolean  @default(false)
@@ -98,6 +97,7 @@ model Despesa {
   relatorio                Relatorio              @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
   categoria                Categoria              @relation(fields: [categoriaId], references: [id])
   despesaQuilometragem     DespesaQuilometragem?
+  comprovantes             Comprovante[]
 
   @@map("despesas")
 }
@@ -118,4 +118,21 @@ model DespesaQuilometragem {
   veiculo  Veiculo @relation(fields: [veiculoId], references: [id])
 
   @@map("despesas_quilometragem")
+}
+
+// Comprovantes de Despesas
+model Comprovante {
+  id          Int      @id @default(autoincrement())
+  despesaId   Int      @map("despesa_id")
+  nomeArquivo String   @map("nome_arquivo")
+  nomeOriginal String  @map("nome_original")
+  tamanho     Int
+  tipoMime    String   @map("tipo_mime")
+  url         String
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  // Relacionamentos
+  despesa     Despesa  @relation(fields: [despesaId], references: [id], onDelete: Cascade)
+
+  @@map("comprovantes")
 }

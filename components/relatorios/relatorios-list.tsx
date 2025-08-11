@@ -19,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Edit, Trash2, Eye, FileText } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, Eye, FileText, Download } from "lucide-react"
 import { toast } from "sonner"
 
 interface Relatorio {
@@ -48,6 +48,7 @@ const statusMap = {
 
 export function RelatoriosList({ relatorios, loading, onDelete }: RelatoriosListProps) {
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [downloadingPdfId, setDownloadingPdfId] = useState<number | null>(null)
 
   const handleDelete = async (id: number) => {
     if (!confirm("Tem certeza que deseja excluir este relatório?")) {
@@ -83,6 +84,44 @@ export function RelatoriosList({ relatorios, loading, onDelete }: RelatoriosList
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("pt-BR")
+  }
+
+  const handleDownloadPdf = async (id: number, titulo: string) => {
+    setDownloadingPdfId(id)
+    try {
+      // Buscar dados do relatório
+      const response = await fetch(`/api/relatorios/${id}/pdf`)
+
+      if (!response.ok) {
+        throw new Error('Erro ao buscar dados do relatório')
+      }
+
+      const { relatorio } = await response.json()
+
+      // Importar dinamicamente o gerador de PDF
+      const { generateRelatorioPDF } = await import('@/lib/pdf-generator')
+      
+      // Gerar PDF
+      const pdfBytes = generateRelatorioPDF(relatorio)
+      
+      // Criar blob e download
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `relatorio-${titulo.replace(/[^a-zA-Z0-9]/g, '-')}-${formatDate(new Date().toISOString()).replace(/\//g, '-')}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast.success('PDF gerado com sucesso!')
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error)
+      toast.error('Erro ao gerar PDF. Tente novamente.')
+    } finally {
+      setDownloadingPdfId(null)
+    }
   }
 
   if (loading) {
@@ -179,6 +218,13 @@ export function RelatoriosList({ relatorios, loading, onDelete }: RelatoriosList
                           <Eye className="h-4 w-4 mr-2" />
                           Visualizar
                         </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDownloadPdf(relatorio.id, relatorio.titulo)}
+                        disabled={downloadingPdfId === relatorio.id}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        {downloadingPdfId === relatorio.id ? 'Gerando PDF...' : 'Download PDF'}
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href={`/relatorios/${relatorio.id}/editar`}>

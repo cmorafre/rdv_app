@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Desabilitar indicadores de desenvolvimento
+  devIndicators: {
+    position: 'top-right',
+  },
+  env: {
+    DISABLE_DEV_OVERLAY: 'true',
+  },
 };
 
 export default nextConfig;

@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { Edit, ArrowLeft, Receipt } from "lucide-react"
 import { toast } from "sonner"
 import { CategoriaIcon } from "@/components/categorias/categoria-icon"
+import { FileUpload } from "@/components/ui/file-upload"
+import { RouteMap } from "@/components/maps/route-map"
 
 interface Categoria {
   id: number
@@ -21,6 +23,35 @@ interface Categoria {
 interface Relatorio {
   id: number
   titulo: string
+}
+
+interface Comprovante {
+  id: number
+  url: string
+  nomeOriginal: string
+  tamanho: number
+  tipoMime: string
+}
+
+interface Veiculo {
+  id: number
+  tipo: string
+  marca?: string
+  modelo?: string
+  identificacao: string
+  valorPorKm: number
+  ativo: boolean
+}
+
+interface DespesaQuilometragem {
+  id: number
+  despesaId: number
+  veiculoId: number
+  origem: string
+  destino: string
+  distanciaKm: number
+  valorPorKm: number
+  veiculo: Veiculo
 }
 
 interface Despesa {
@@ -35,6 +66,8 @@ interface Despesa {
   clienteACobrar: boolean
   categoria: Categoria
   relatorio: Relatorio
+  comprovantes: Comprovante[]
+  despesaQuilometragem?: DespesaQuilometragem
   createdAt: string
 }
 
@@ -254,6 +287,55 @@ export default function VisualizarDespesa() {
           </Card>
         </div>
 
+        {/* Informações de Quilometragem e Mapa do Trajeto */}
+        {despesa.despesaQuilometragem && (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Informações da Viagem</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Veículo</label>
+                    <p className="font-medium">
+                      {despesa.despesaQuilometragem.veiculo.identificacao} - {despesa.despesaQuilometragem.veiculo.tipo}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {despesa.despesaQuilometragem.veiculo.marca} {despesa.despesaQuilometragem.veiculo.modelo}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Distância Percorrida</label>
+                    <p className="font-medium">{despesa.despesaQuilometragem.distanciaKm} km</p>
+                    <p className="text-sm text-muted-foreground">
+                      R$ {parseFloat(despesa.despesaQuilometragem.valorPorKm.toString()).toFixed(2)}/km
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Origem</label>
+                    <p className="font-medium">{despesa.despesaQuilometragem.origem}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Destino</label>
+                    <p className="font-medium">{despesa.despesaQuilometragem.destino}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <RouteMap
+              origin={despesa.despesaQuilometragem.origem}
+              destination={despesa.despesaQuilometragem.destino}
+            />
+          </>
+        )}
+
         {despesa.observacoes && (
           <Card>
             <CardHeader>
@@ -264,6 +346,22 @@ export default function VisualizarDespesa() {
             </CardContent>
           </Card>
         )}
+
+        {/* Seção de Comprovantes */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Comprovantes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FileUpload
+              despesaId={despesa.id}
+              existingFiles={despesa.comprovantes}
+              onFilesChange={(newFiles) => {
+                setDespesa(prev => prev ? { ...prev, comprovantes: newFiles } : null)
+              }}
+            />
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   )
