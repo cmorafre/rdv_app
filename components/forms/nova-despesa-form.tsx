@@ -42,8 +42,8 @@ const createDespesaSchema = (isQuilometragem: boolean) => z.object({
   }),
   observacoes: z.string().optional(),
   reembolsavel: z.boolean().default(true),
+  clienteACobrar: z.boolean().default(true),
   reembolsada: z.boolean().default(false),
-  clienteACobrar: z.boolean().default(false),
   // Campos específicos para quilometragem
   veiculoId: isQuilometragem 
     ? z.string().min(1, "Veículo é obrigatório para despesas de quilometragem").transform(val => parseInt(val))
@@ -117,8 +117,8 @@ export function NovaDespesaForm() {
       valor: "",
       observacoes: "",
       reembolsavel: true,
+      clienteACobrar: true,
       reembolsada: false,
-      clienteACobrar: false,
       veiculoId: "",
       quilometragem: "",
       origem: "",
@@ -632,28 +632,17 @@ export function NovaDespesaForm() {
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Configurações de Reembolso</h3>
               
-              <FormField
-                control={form.control}
-                name="reembolsavel"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">
-                        Despesa Reembolsável
-                      </FormLabel>
-                      <FormDescription>
-                        Esta despesa deve ser reembolsada pela empresa
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              {/* Informação fixa sobre o status */}
+              <div className="rounded-lg border p-4 bg-blue-50">
+                <div className="space-y-0.5">
+                  <div className="text-base font-medium text-blue-900">
+                    Status do Reembolso
+                  </div>
+                  <div className="text-sm text-blue-700">
+                    A Reembolsar pelo Cliente (Padrão)
+                  </div>
+                </div>
+              </div>
 
               <FormField
                 control={form.control}
@@ -680,15 +669,15 @@ export function NovaDespesaForm() {
 
               <FormField
                 control={form.control}
-                name="clienteACobrar"
+                name="reembolsada"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">
-                        Cliente a Cobrar
+                        Já foi Reembolsada?
                       </FormLabel>
                       <FormDescription>
-                        Esta despesa deve ser cobrada do cliente
+                        Marque se esta despesa já foi reembolsada pelo cliente
                       </FormDescription>
                     </div>
                     <FormControl>

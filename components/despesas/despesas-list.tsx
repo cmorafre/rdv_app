@@ -202,11 +202,6 @@ export function DespesasList({ despesas, loading, onDelete }: DespesasListProps)
                         A Reembolsar
                       </Badge>
                     )}
-                    {despesa.clienteACobrar && (
-                      <Badge variant="outline" className="w-fit">
-                        Cobrar Cliente
-                      </Badge>
-                    )}
                   </div>
                 </TableCell>
                 <TableCell>

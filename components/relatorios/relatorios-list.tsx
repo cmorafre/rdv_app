@@ -42,8 +42,7 @@ interface RelatoriosListProps {
 
 const statusMap = {
   em_andamento: { label: "Em Andamento", variant: "secondary" as const },
-  finalizado: { label: "Finalizado", variant: "default" as const },
-  reembolsado: { label: "Reembolsado", variant: "destructive" as const }
+  reembolsado: { label: "Reembolsado", variant: "default" as const }
 }
 
 export function RelatoriosList({ relatorios, loading, onDelete }: RelatoriosListProps) {

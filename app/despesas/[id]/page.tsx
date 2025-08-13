@@ -249,11 +249,6 @@ export default function VisualizarDespesa() {
                     A Reembolsar
                   </Badge>
                 )}
-                {despesa.clienteACobrar && (
-                  <Badge variant="outline" className="w-fit">
-                    Cobrar Cliente
-                  </Badge>
-                )}
                 {!despesa.reembolsavel && !despesa.clienteACobrar && (
                   <Badge variant="outline" className="w-fit">
                     Não Reembolsável
@@ -276,12 +271,6 @@ export default function VisualizarDespesa() {
                   </Badge>
                 </div>
 
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <span className="text-sm font-medium">Cliente a Cobrar</span>
-                  <Badge variant={despesa.clienteACobrar ? "default" : "secondary"}>
-                    {despesa.clienteACobrar ? "Sim" : "Não"}
-                  </Badge>
-                </div>
               </div>
             </CardContent>
           </Card>

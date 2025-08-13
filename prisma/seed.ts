@@ -64,7 +64,7 @@ async function main() {
       dataFim: new Date('2024-01-18'),
       destino: 'São Paulo - SP',
       proposito: 'Reunião com cliente',
-      status: 'finalizado',
+      status: 'reembolsado',
       cliente: 'Empresa ABC Ltda',
       observacoes: 'Viagem para apresentação do projeto'
     },

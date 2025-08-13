@@ -138,7 +138,6 @@ export function RelatoriosFilters({ onFilterChange, loading }: RelatoriosFilters
               <SelectContent>
                 <SelectItem value="all">Todos os status</SelectItem>
                 <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                <SelectItem value="finalizado">Finalizado</SelectItem>
                 <SelectItem value="reembolsado">Reembolsado</SelectItem>
               </SelectContent>
             </Select>

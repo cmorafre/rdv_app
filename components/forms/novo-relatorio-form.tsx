@@ -27,7 +27,7 @@ const RelatorioFormSchema = z.object({
   dataFim: z.string().min(1, "Data de fim é obrigatória"),
   destino: z.string().optional(),
   proposito: z.string().optional(),
-  status: z.enum(["em_andamento", "finalizado", "reembolsado"]).default("em_andamento"),
+  status: z.enum(["em_andamento", "reembolsado"]).default("em_andamento"),
   cliente: z.string().optional(),
   observacoes: z.string().optional(),
 }).refine((data) => {
@@ -231,7 +231,6 @@ export function NovoRelatorioForm() {
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                      <SelectItem value="finalizado">Finalizado</SelectItem>
                       <SelectItem value="reembolsado">Reembolsado</SelectItem>
                     </SelectContent>
                   </Select>

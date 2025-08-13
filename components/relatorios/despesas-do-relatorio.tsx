@@ -222,11 +222,6 @@ export function DespesasDoRelatorio({ relatorioId, despesas, loading, onUpdate }
                           A Reembolsar
                         </Badge>
                       )}
-                      {despesa.clienteACobrar && (
-                        <Badge variant="outline" className="w-fit text-xs">
-                          Cobrar Cliente
-                        </Badge>
-                      )}
                       {!despesa.reembolsavel && !despesa.clienteACobrar && (
                         <Badge variant="outline" className="w-fit text-xs">
                           Não Reembolsável

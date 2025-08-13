@@ -9,7 +9,8 @@ export const despesaSchema = z.object({
   valor: z.number().positive('Valor deve ser positivo'),
   observacoes: z.string().optional(),
   reembolsavel: z.boolean().default(true),
-  clienteACobrar: z.boolean().default(false),
+  clienteACobrar: z.boolean().default(true),
+  reembolsada: z.boolean().default(false),
 })
 
 export const despesaQuilometragemSchema = z.object({

@@ -90,7 +90,7 @@ model Despesa {
   observacoes      String?
   reembolsavel     Boolean  @default(true)
   reembolsada      Boolean  @default(false)
-  clienteACobrar   Boolean  @default(false) @map("cliente_a_cobrar")
+  clienteACobrar   Boolean  @default(true) @map("cliente_a_cobrar")
   createdAt        DateTime @default(now()) @map("created_at")
   
   // Relacionamentos

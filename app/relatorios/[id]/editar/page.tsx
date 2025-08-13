@@ -30,7 +30,7 @@ const RelatorioEditSchema = z.object({
   dataFim: z.string().min(1, "Data de fim é obrigatória"),
   destino: z.string().optional(),
   proposito: z.string().optional(),
-  status: z.enum(["em_andamento", "finalizado", "reembolsado"]),
+  status: z.enum(["em_andamento", "reembolsado"]),
   cliente: z.string().optional(),
   observacoes: z.string().optional(),
 }).refine((data) => {
@@ -112,7 +112,7 @@ export default function EditarRelatorio() {
         dataFim: formatDateForInput(data.dataFim),
         destino: data.destino || "",
         proposito: data.proposito || "",
-        status: data.status as "em_andamento" | "finalizado" | "reembolsado",
+        status: data.status as "em_andamento" | "reembolsado",
         cliente: data.cliente || "",
         observacoes: data.observacoes || "",
       })
@@ -353,7 +353,6 @@ export default function EditarRelatorio() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                          <SelectItem value="finalizado">Finalizado</SelectItem>
                           <SelectItem value="reembolsado">Reembolsado</SelectItem>
                         </SelectContent>
                       </Select>

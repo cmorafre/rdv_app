@@ -6,7 +6,8 @@ import { AppLayout } from "@/components/layouts/app-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Edit, ArrowLeft, Download } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Edit, ArrowLeft, Download, DollarSign, AlertTriangle, CheckCircle, RotateCcw } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { DespesasDoRelatorio } from "@/components/relatorios/despesas-do-relatorio"
@@ -45,8 +46,7 @@ interface Relatorio {
 
 const statusMap = {
   em_andamento: { label: "Em Andamento", variant: "secondary" as const },
-  finalizado: { label: "Finalizado", variant: "default" as const },
-  reembolsado: { label: "Reembolsado", variant: "destructive" as const }
+  reembolsado: { label: "Reembolsado", variant: "default" as const }
 }
 
 export default function VisualizarRelatorio() {
@@ -55,6 +55,10 @@ export default function VisualizarRelatorio() {
   const [relatorio, setRelatorio] = useState<Relatorio | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloadingPdf, setDownloadingPdf] = useState(false)
+  const [reembolsando, setReembolsando] = useState(false)
+  const [extornando, setExtornando] = useState(false)
+  const [showReembolsoModal, setShowReembolsoModal] = useState(false)
+  const [showExtornoModal, setShowExtornoModal] = useState(false)
 
   const id = params.id as string
 
@@ -136,6 +140,112 @@ export default function VisualizarRelatorio() {
     }
   }
 
+  const handleReembolsar = async () => {
+    if (!relatorio) return
+
+    const despesasNaoReembolsadas = relatorio.despesas?.filter(d => d.reembolsavel && !d.reembolsada) || []
+    const quantidadeDespesas = despesasNaoReembolsadas.length
+
+    if (quantidadeDespesas === 0) {
+      toast.info('Nenhuma despesa para reembolsar', {
+        description: 'Todas as despesas reembolsáveis deste relatório já foram marcadas como reembolsadas.'
+      })
+      return
+    }
+
+    setShowReembolsoModal(true)
+  }
+
+  const confirmReembolso = async () => {
+    if (!relatorio) return
+
+    setShowReembolsoModal(false)
+    setReembolsando(true)
+    
+    try {
+      const response = await fetch(`/api/relatorios/${id}/reembolsar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Erro ao reembolsar despesas')
+      }
+
+      const result = await response.json()
+      
+      toast.success('Despesas reembolsadas com sucesso!', {
+        description: `${result.despesasReembolsadas} despesa(s) marcada(s) como reembolsada(s).`
+      })
+
+      // Recarregar dados
+      loadRelatorio()
+    } catch (error) {
+      console.error('Erro ao reembolsar despesas:', error)
+      toast.error('Erro ao reembolsar despesas', {
+        description: error instanceof Error ? error.message : 'Erro interno do servidor'
+      })
+    } finally {
+      setReembolsando(false)
+    }
+  }
+
+  const handleExtornar = async () => {
+    if (!relatorio) return
+
+    const despesasReembolsadas = relatorio.despesas?.filter(d => d.reembolsavel && d.reembolsada) || []
+    const quantidadeDespesas = despesasReembolsadas.length
+
+    if (quantidadeDespesas === 0) {
+      toast.info('Nenhuma despesa para extornar', {
+        description: 'Não há despesas reembolsadas neste relatório para extornar.'
+      })
+      return
+    }
+
+    setShowExtornoModal(true)
+  }
+
+  const confirmExtorno = async () => {
+    if (!relatorio) return
+
+    setShowExtornoModal(false)
+    setExtornando(true)
+    
+    try {
+      const response = await fetch(`/api/relatorios/${id}/extornar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Erro ao extornar reembolso')
+      }
+
+      const result = await response.json()
+      
+      toast.success('Reembolso extornado com sucesso!', {
+        description: `${result.despesasExtornadas} despesa(s) marcada(s) como não reembolsada(s).`
+      })
+
+      // Recarregar dados
+      loadRelatorio()
+    } catch (error) {
+      console.error('Erro ao extornar reembolso:', error)
+      toast.error('Erro ao extornar reembolso', {
+        description: error instanceof Error ? error.message : 'Erro interno do servidor'
+      })
+    } finally {
+      setExtornando(false)
+    }
+  }
+
   if (loading) {
     return (
       <AppLayout breadcrumbs={[
@@ -188,6 +298,27 @@ export default function VisualizarRelatorio() {
             </p>
           </div>
           <div className="flex gap-2">
+            {relatorio.status === 'em_andamento' ? (
+              <Button
+                onClick={handleReembolsar}
+                disabled={reembolsando}
+                variant="default"
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <DollarSign className="h-4 w-4 mr-2" />
+                {reembolsando ? 'Reembolsando...' : 'Reembolsar Relatório'}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleExtornar}
+                disabled={extornando}
+                variant="default"
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                {extornando ? 'Extornando...' : 'Relatório Reembolsado'}
+              </Button>
+            )}
             <Button
               onClick={handleDownloadPdf}
               disabled={downloadingPdf}
@@ -297,6 +428,144 @@ export default function VisualizarRelatorio() {
           onUpdate={loadRelatorio}
         />
       </div>
+
+      {/* Modal de Confirmação de Reembolso */}
+      <Dialog open={showReembolsoModal} onOpenChange={setShowReembolsoModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-orange-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold text-gray-900">
+                  Reembolsar Despesas
+                </DialogTitle>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <DialogDescription className="text-gray-600 mb-6">
+            {(() => {
+              const despesasNaoReembolsadas = relatorio?.despesas?.filter(d => d.reembolsavel && !d.reembolsada) || []
+              const quantidadeDespesas = despesasNaoReembolsadas.length
+              return (
+                <>
+                  <p className="mb-4">
+                    Tem certeza que deseja marcar <strong className="text-gray-900">{quantidadeDespesas} despesa(s)</strong> deste relatório como reembolsadas?
+                  </p>
+                  
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-yellow-800">
+                        <strong>Atenção:</strong> Esta ação não pode ser desfeita. Todas as despesas selecionadas serão marcadas como reembolsadas permanentemente.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )
+            })()}
+          </DialogDescription>
+
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setShowReembolsoModal(false)}
+              disabled={reembolsando}
+              className="px-6"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmReembolso}
+              disabled={reembolsando}
+              className="bg-green-600 hover:bg-green-700 text-white px-6"
+            >
+              {reembolsando ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Confirmar Reembolso
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmação de Extorno */}
+      <Dialog open={showExtornoModal} onOpenChange={setShowExtornoModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <RotateCcw className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold text-gray-900">
+                  Extornar Reembolso
+                </DialogTitle>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <DialogDescription className="text-gray-600 mb-6">
+            {(() => {
+              const despesasReembolsadas = relatorio?.despesas?.filter(d => d.reembolsavel && d.reembolsada) || []
+              const quantidadeDespesas = despesasReembolsadas.length
+              return (
+                <>
+                  <p className="mb-4">
+                    Tem certeza que deseja extornar o reembolso de <strong className="text-gray-900">{quantidadeDespesas} despesa(s)</strong> deste relatório?
+                  </p>
+                  
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-red-800">
+                        <strong>Atenção:</strong> Esta ação irá reverter o reembolso e marcar todas as despesas como não reembolsadas. O status do relatório voltará para "Em Andamento".
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )
+            })()}
+          </DialogDescription>
+
+          <div className="flex gap-3 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setShowExtornoModal(false)}
+              disabled={extornando}
+              className="px-6"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmExtorno}
+              disabled={extornando}
+              className="bg-red-600 hover:bg-red-700 text-white px-6"
+            >
+              {extornando ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Confirmar Extorno
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   )
 }
