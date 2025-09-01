@@ -1,8 +1,11 @@
 import { SignJWT, jwtVerify } from 'jose'
-import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from './db'
+import { hashPassword, comparePassword } from './crypto'
+
+// Re-export para compatibilidade
+export { hashPassword }
 
 const secretKey = new TextEncoder().encode(
   process.env.JWT_SECRET || 'rdv-app-super-secret-key-2025'
@@ -35,14 +38,9 @@ export async function verifyToken(token: string): Promise<SessionPayload | null>
   }
 }
 
-// Hash de senha
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12)
-}
-
 // Verificar senha
 export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
-  return bcrypt.compare(password, hashedPassword)
+  return comparePassword(password, hashedPassword)
 }
 
 // Criar sessão (cookie)
