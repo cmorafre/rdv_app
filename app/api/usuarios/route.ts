@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     const busca = searchParams.get('busca') || ''
 
     // Construir where clause
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const whereClause: Record<string, any> = {}
 
     if (busca) {

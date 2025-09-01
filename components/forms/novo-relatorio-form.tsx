@@ -47,7 +47,8 @@ export function NovoRelatorioForm() {
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<RelatorioFormValues>({
-    resolver: zodResolver(RelatorioFormSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(RelatorioFormSchema) as any,
     defaultValues: {
       titulo: "",
       dataInicio: "",

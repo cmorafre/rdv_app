@@ -6,13 +6,15 @@ import { Loader } from '@googlemaps/js-api-loader'
 interface UseGoogleMapsReturn {
   isLoaded: boolean
   loadError: string | null
-  google: typeof globalThis.google | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  google: any
 }
 
 export function useGoogleMaps(): UseGoogleMapsReturn {
   const [isLoaded, setIsLoaded] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [google, setGoogle] = useState<typeof globalThis.google | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [google, setGoogle] = useState<any>(null)
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY

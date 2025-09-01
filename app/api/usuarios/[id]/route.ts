@@ -110,6 +110,7 @@ export async function PUT(
     }
 
     // Preparar dados para atualização
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {}
     
     if (validatedData.nome) updateData.nome = validatedData.nome

@@ -1,5 +1,6 @@
 import { AppLayout } from "@/components/layouts/app-layout"
 import { NovaDespesaForm } from "@/components/forms/nova-despesa-form"
+import { Suspense } from "react"
 
 export default function NovaDespesa() {
   const breadcrumbs = [
@@ -18,7 +19,9 @@ export default function NovaDespesa() {
           </p>
         </div>
         
-        <NovaDespesaForm />
+        <Suspense fallback={<div>Carregando...</div>}>
+          <NovaDespesaForm />
+        </Suspense>
       </div>
     </AppLayout>
   )

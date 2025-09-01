@@ -80,6 +80,7 @@ export default function EditarRelatorio() {
     },
   })
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadRelatorio()
   }, [id])

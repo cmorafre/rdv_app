@@ -301,7 +301,7 @@ export async function generateRelatorioPDF(data: RelatorioData): Promise<ArrayBu
     margin: { left: margin, right: margin }
   })
   
-  yPosition = doc.lastAutoTable?.finalY + 10 || yPosition + 50
+  yPosition = (doc.lastAutoTable?.finalY ?? yPosition + 40) + 10
   
   // Resumo por categoria
   doc.setFontSize(12)
@@ -337,7 +337,7 @@ export async function generateRelatorioPDF(data: RelatorioData): Promise<ArrayBu
     margin: { left: margin, right: margin }
   })
   
-  yPosition = doc.lastAutoTable?.finalY + 10 || yPosition + 50
+  yPosition = (doc.lastAutoTable?.finalY ?? yPosition + 40) + 10
 
   // Resumo por uso de veículo
   const despesasQuilometragem = data.despesas.filter(d => d.despesaQuilometragem)
@@ -374,7 +374,7 @@ export async function generateRelatorioPDF(data: RelatorioData): Promise<ArrayBu
       margin: { left: margin, right: margin }
     })
     
-    yPosition = doc.lastAutoTable?.finalY + 15 || yPosition + 50
+    yPosition = (doc.lastAutoTable?.finalY ?? yPosition + 35) + 15
   }
   
   // SEÇÃO DE COMPROVANTES (nova página)
@@ -384,7 +384,8 @@ export async function generateRelatorioPDF(data: RelatorioData): Promise<ArrayBu
   await addComprovantesSection(doc, data.despesas, yPosition)
 
   // Rodapé seguindo o padrão do exemplo
-  const totalPages = doc.internal.getNumberOfPages()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const totalPages = (doc as any).internal.getNumberOfPages()
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
     

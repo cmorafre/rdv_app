@@ -80,7 +80,7 @@ export function VeiculoDetails({ veiculo }: VeiculoDetailsProps) {
     }
   }
 
-  const totalQuilometragem = veiculo.despesasQuilometragem?.reduce((total, item) => total + item.quilometragem, 0) || 0
+  const totalQuilometragem = veiculo.despesasQuilometragem?.reduce((total, item) => total + item.distanciaKm, 0) || 0
   const totalValor = veiculo.despesasQuilometragem?.reduce((total, item) => total + item.despesa.valor, 0) || 0
 
   return (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { AppLayout } from "@/components/layouts/app-layout"
 import { EditDespesaForm } from "@/components/forms/edit-despesa-form"
@@ -41,11 +41,8 @@ export default function EditarDespesa() {
 
   const id = params.id as string
 
-  useEffect(() => {
-    loadDespesa()
-  }, [id])
-
-  const loadDespesa = async () => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const loadDespesa = useCallback(async () => {
     try {
       const response = await fetch(`/api/despesas/${id}`)
       
@@ -67,7 +64,11 @@ export default function EditarDespesa() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    loadDespesa()
+  }, [loadDespesa])
 
   if (loading) {
     return (
@@ -101,7 +102,7 @@ export default function EditarDespesa() {
         <div>
           <h1 className="text-2xl font-bold">Editar Despesa</h1>
           <p className="text-muted-foreground">
-            Atualize as informações da despesa "{despesa.descricao}"
+            Atualize as informações da despesa &quot;{despesa.descricao}&quot;
           </p>
         </div>
         

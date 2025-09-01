@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Edit, Trash2, Eye, Tag, ToggleLeft, ToggleRight } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, Tag, ToggleLeft, ToggleRight } from "lucide-react"
 import { toast } from "sonner"
 import { EditCategoriaDialog } from "./edit-categoria-dialog"
 import { CategoriaIcon } from "./categoria-icon"

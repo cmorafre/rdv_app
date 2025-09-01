@@ -10,7 +10,6 @@ import {
   Settings2,
   Plus,
   List,
-  Plane,
   Tag,
   Users,
 } from "lucide-react"
@@ -30,12 +29,14 @@ import { useAuth } from "@/hooks/use-auth"
 // Função para gerar a navegação com base na rota atual
 const getRdvNavigation = (pathname: string) => {
   // Função para verificar se um item deve estar ativo
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isItemActive = (item: any) => {
     if (!item.items) {
       return pathname === item.url
     }
     
     // Para itens com sub-itens, verifica se algum sub-item está ativo
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return item.items.some((subItem: any) => {
       // Verifica match exato ou se a rota atual está dentro da seção
       return pathname === subItem.url || pathname.startsWith(item.url + "/")

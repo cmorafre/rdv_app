@@ -24,6 +24,7 @@ export function VeiculosFilters({ onFiltersChange }: VeiculosFiltersProps) {
   
   const debouncedBusca = useDebounce(filters.busca, 500)
   
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     onFiltersChange({
       ...filters,

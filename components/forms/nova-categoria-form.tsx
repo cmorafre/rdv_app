@@ -37,7 +37,8 @@ export function NovaCategoriaForm() {
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<CategoriaFormValues>({
-    resolver: zodResolver(CategoriaFormSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(CategoriaFormSchema) as any,
     defaultValues: {
       nome: "",
       icone: "",

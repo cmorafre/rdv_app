@@ -97,7 +97,8 @@ export default function VeiculoPage() {
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
-      <VeiculoDetails veiculo={veiculo} />
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      <VeiculoDetails veiculo={veiculo as any} />
     </AppLayout>
   )
 }

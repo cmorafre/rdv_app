@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 
 const novoVeiculoSchema = z.object({
   tipo: z.string().min(1, "Tipo é obrigatório"),
@@ -31,7 +30,8 @@ export function NovoVeiculoForm() {
   const [loading, setLoading] = useState(false)
 
   const form = useForm<NovoVeiculoFormData>({
-    resolver: zodResolver(novoVeiculoSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(novoVeiculoSchema) as any,
     defaultValues: {
       tipo: "",
       marca: "",

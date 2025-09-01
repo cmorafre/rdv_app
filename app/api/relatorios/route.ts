@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       return authResult
     }
     
-    const user = authResult
+    const _user = authResult
 
     const { searchParams } = new URL(request.url)
     
@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
     const cliente = searchParams.get('cliente') || ''
 
     // Construir where clause
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const whereClause: Record<string, any> = {}
 
     if (busca) {
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
       return authResult
     }
     
-    const user = authResult
+    const _user = authResult
 
     const body = await request.json()
     const validatedData = RelatorioCreateSchema.parse(body)

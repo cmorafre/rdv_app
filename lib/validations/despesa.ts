@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const despesaSchema = z.object({
   relatorioId: z.number().int().positive('Relatório é obrigatório'),
   categoriaId: z.number().int().positive('Categoria é obrigatória'),
-  dataDespesa: z.date({ required_error: 'Data da despesa é obrigatória' }),
+  dataDespesa: z.date({ message: 'Data da despesa é obrigatória' }),
   descricao: z.string().min(1, 'Descrição é obrigatória').max(255, 'Descrição muito longa'),
   fornecedor: z.string().optional(),
   valor: z.number().positive('Valor deve ser positivo'),

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -16,7 +16,7 @@ interface RelatoriosFilters {
 }
 
 interface RelatoriosFiltersProps {
-  onFilterChange: (filters: RelatoriosFilters) => void
+  onFilterChange: (filters: Record<string, string>) => void
   loading?: boolean
 }
 
@@ -52,6 +52,7 @@ export function RelatoriosFilters({ onFilterChange, loading }: RelatoriosFilters
   }, [filters.busca, filters.cliente])
 
   // Para outros campos (datas e status), aplicar imediatamente
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const apiFilters = { ...filters }
     if (apiFilters.status === "all") {

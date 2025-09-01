@@ -65,9 +65,9 @@ const createDespesaSchema = (isQuilometragem: boolean) => z.object({
     : z.string().optional(),
 })
 
-const DespesaSchema = createDespesaSchema(false)
+const _DespesaSchema = createDespesaSchema(false)
 
-type DespesaFormValues = z.infer<typeof DespesaSchema>
+type DespesaFormValues = z.infer<ReturnType<typeof createDespesaSchema>>
 
 interface Relatorio {
   id: number
@@ -107,35 +107,38 @@ export function NovaDespesaForm() {
   const preSelectedRelatorioId = searchParams.get("relatorio")
 
   const form = useForm<DespesaFormValues>({
-    resolver: zodResolver(createDespesaSchema(isQuilometragem)),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(createDespesaSchema(isQuilometragem)) as any,
     defaultValues: {
-      relatorioId: preSelectedRelatorioId || "",
-      categoriaId: "",
+      relatorioId: preSelectedRelatorioId ? parseInt(preSelectedRelatorioId) : 0,
+      categoriaId: 0,
       dataDespesa: new Date().toISOString().split('T')[0],
       descricao: "",
       fornecedor: "",
-      valor: "",
+      valor: 0,
       observacoes: "",
       reembolsavel: true,
       clienteACobrar: true,
       reembolsada: false,
-      veiculoId: "",
-      quilometragem: "",
-      origem: "",
-      destino: "",
+      veiculoId: undefined,
+      quilometragem: undefined,
+      origem: undefined,
+      destino: undefined,
     },
   })
 
   // Revalidar form quando schema mudar
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    const currentValues = form.getValues()
+    const _currentValues = form.getValues()
     form.clearErrors()
-    // Resetar resolver com novo schema
-    const newResolver = zodResolver(createDespesaSchema(isQuilometragem))
-    form.setResolver?.(newResolver)
+    // Resetar resolver com novo schema - comentado por problemas de tipos
+    // const newResolver = zodResolver(createDespesaSchema(isQuilometragem))
+    // form.setResolver?.(newResolver)
   }, [isQuilometragem])
 
   // Carregar relatórios, categorias e veículos
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -174,7 +177,7 @@ export function NovaDespesaForm() {
   useEffect(() => {
     const categoriaId = form.watch("categoriaId")
     if (categorias.length > 0 && categoriaId) {
-      const categoria = categorias.find(c => c.id === parseInt(categoriaId))
+      const categoria = categorias.find(c => c.id === categoriaId)
       const isKilometragem = categoria?.nome === "Quilometragem"
       setIsQuilometragem(isKilometragem)
       
@@ -187,26 +190,27 @@ export function NovaDespesaForm() {
         }
       } else {
         // Limpar campos de quilometragem se não for quilometragem
-        form.setValue("veiculoId", "")
-        form.setValue("quilometragem", "")
-        form.setValue("origem", "")
-        form.setValue("destino", "")
+        form.setValue("veiculoId", undefined)
+        form.setValue("quilometragem", undefined)
+        form.setValue("origem", undefined)
+        form.setValue("destino", undefined)
       }
     }
   }, [form.watch("categoriaId"), categorias])
 
   // Calcular valor automaticamente para quilometragem
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isQuilometragem) {
       const veiculoId = form.watch("veiculoId")
       const quilometragem = form.watch("quilometragem")
       
       if (veiculoId && quilometragem) {
-        const veiculo = veiculos.find(v => v.id === parseInt(veiculoId))
+        const veiculo = veiculos.find(v => v.id === veiculoId)
         if (veiculo) {
           const valorPorKm = parseFloat(veiculo.valorPorKm.toString())
-          const valorCalculado = parseFloat(quilometragem) * valorPorKm
-          form.setValue("valor", valorCalculado.toFixed(2).replace(".", ","))
+          const valorCalculado = parseFloat(quilometragem.toString()) * valorPorKm
+          form.setValue("valor", valorCalculado)
         }
       }
     }
@@ -496,10 +500,10 @@ export function NovaDespesaForm() {
                 {/* Calculadora de Distância */}
                 {form.watch("origem") && form.watch("destino") && (
                   <DistanceCalculator
-                    origin={form.watch("origem")}
-                    destination={form.watch("destino")}
+                    origin={form.watch("origem") || ""}
+                    destination={form.watch("destino") || ""}
                     onDistanceCalculated={(distanceKm) => {
-                      form.setValue("quilometragem", distanceKm.toString())
+                      form.setValue("quilometragem", distanceKm)
                     }}
                   />
                 )}
@@ -511,7 +515,10 @@ export function NovaDespesaForm() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Veículo *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select 
+                          onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} 
+                          value={field.value?.toString()}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione o veículo" />

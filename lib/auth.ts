@@ -12,6 +12,7 @@ export interface SessionPayload {
   userId: number
   email: string
   nome: string
+  [key: string]: unknown
 }
 
 // Gerar JWT

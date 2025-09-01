@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { AppLayout } from "@/components/layouts/app-layout"
@@ -79,11 +79,7 @@ export default function VisualizarDespesa() {
 
   const id = params.id as string
 
-  useEffect(() => {
-    loadDespesa()
-  }, [id])
-
-  const loadDespesa = async () => {
+  const loadDespesa = useCallback(async () => {
     try {
       const response = await fetch(`/api/despesas/${id}`)
       
@@ -104,7 +100,11 @@ export default function VisualizarDespesa() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, router])
+
+  useEffect(() => {
+    loadDespesa()
+  }, [loadDespesa])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {

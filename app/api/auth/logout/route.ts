@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { destroySession } from '@/lib/auth'
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     await destroySession()
     

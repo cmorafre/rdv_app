@@ -4,9 +4,9 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { AppLayout } from "@/components/layouts/app-layout"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Edit, ArrowLeft, Download, DollarSign, AlertTriangle, CheckCircle, RotateCcw } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -62,6 +62,7 @@ export default function VisualizarRelatorio() {
 
   const id = params.id as string
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadRelatorio()
   }, [id])
@@ -528,7 +529,7 @@ export default function VisualizarRelatorio() {
                     <div className="flex items-start gap-2">
                       <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
                       <p className="text-sm text-red-800">
-                        <strong>Atenção:</strong> Esta ação irá reverter o reembolso e marcar todas as despesas como não reembolsadas. O status do relatório voltará para "Em Andamento".
+                        <strong>Atenção:</strong> Esta ação irá reverter o reembolso e marcar todas as despesas como não reembolsadas. O status do relatório voltará para &quot;Em Andamento&quot;.
                       </p>
                     </div>
                   </div>

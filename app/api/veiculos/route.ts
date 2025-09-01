@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
     const includeInactive = searchParams.get('includeInactive') === 'true'
 
     // Construir where clause
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const whereClause: Record<string, any> = {}
 
     if (!includeInactive) {

@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const veiculoSchema = z.object({
   tipo: z.enum(['pessoal', 'empresa', 'financiado', 'alugado'], {
-    required_error: 'Tipo de veículo é obrigatório'
+    message: 'Tipo de veículo é obrigatório'
   }),
   marca: z.string().optional(),
   modelo: z.string().optional(),

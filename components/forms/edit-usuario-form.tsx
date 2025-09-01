@@ -63,7 +63,8 @@ export function EditUsuarioForm({ usuario }: EditUsuarioFormProps) {
   const router = useRouter()
 
   const form = useForm<EditUsuarioValues>({
-    resolver: zodResolver(EditUsuarioSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(EditUsuarioSchema) as any,
     defaultValues: {
       nome: usuario.nome,
       email: usuario.email,
@@ -78,6 +79,7 @@ export function EditUsuarioForm({ usuario }: EditUsuarioFormProps) {
   const onSubmit = async (data: EditUsuarioValues) => {
     setIsLoading(true)
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const requestData: any = {
         nome: data.nome,
         email: data.email,

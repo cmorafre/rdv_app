@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils'
 
 interface AddressAutocompleteProps {
   value: string
-  onChange: (value: string, place?: google.maps.places.PlaceResult) => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onChange: (value: string, place?: any) => void
   placeholder?: string
   className?: string
   disabled?: boolean
@@ -22,12 +23,15 @@ export function AddressAutocomplete({
 }: AddressAutocompleteProps) {
   const { isLoaded, loadError, google } = useGoogleMaps()
   const inputRef = useRef<HTMLInputElement>(null)
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
-  const listenerRef = useRef<google.maps.MapsEventListener | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const autocompleteRef = useRef<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const listenerRef = useRef<any>(null)
   const [inputValue, setInputValue] = useState(value)
   const [isSettingFromProp, setIsSettingFromProp] = useState(false)
 
   // Stable onChange callback to prevent unnecessary re-renders
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableOnChange = useCallback(onChange, [])
 
   // Atualizar valor interno quando value prop muda externamente
@@ -49,14 +53,16 @@ export function AddressAutocomplete({
     // Limpar instância anterior se existir
     if (autocompleteRef.current) {
       if (listenerRef.current) {
-        google.maps.event.removeListener(listenerRef.current)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).google.maps.event.removeListener(listenerRef.current)
         listenerRef.current = null
       }
       autocompleteRef.current = null
     }
 
     // Criar nova instância do autocomplete
-    const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const autocomplete = new (window as any).google.maps.places.Autocomplete(inputRef.current, {
       types: ['(cities)'], // Apenas cidades e regiões administrativas
       componentRestrictions: { country: 'BR' }, // Restringir ao Brasil
       fields: ['formatted_address', 'geometry', 'name', 'place_id', 'types']
@@ -82,7 +88,8 @@ export function AddressAutocomplete({
     // Cleanup function
     return () => {
       if (listenerRef.current) {
-        google.maps.event.removeListener(listenerRef.current)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).google.maps.event.removeListener(listenerRef.current)
         listenerRef.current = null
       }
       if (autocompleteRef.current) {
