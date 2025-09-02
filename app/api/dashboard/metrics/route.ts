@@ -9,15 +9,10 @@ export async function OPTIONS() {
 
 export async function GET(request: NextRequest) {
   try {
-    // Verificar se é requisição do mobile (bypass auth temporário)
-    const isMobileRequest = request.headers.get('X-Mobile-Test') === 'true'
+    const authResult = await requireAuth(request)
     
-    if (!isMobileRequest) {
-      const authResult = await requireAuth(request)
-      
-      if (authResult instanceof NextResponse) {
-        return authResult
-      }
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     // Obter data atual e do mês anterior para comparação
