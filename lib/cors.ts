@@ -19,7 +19,7 @@ export function corsPreflightResponse() {
 }
 
 // Wrapper para adicionar CORS a qualquer resposta JSON
-export function corsResponse(data: any, init?: ResponseInit) {
+export function corsResponse(data: unknown, init?: ResponseInit) {
   return NextResponse.json(data, {
     ...init,
     headers: {
