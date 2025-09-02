@@ -1,6 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { authenticate, createSession } from '@/lib/auth'
 import { loginSchema } from '@/lib/validations'
+import { corsPreflightResponse, corsResponse } from '@/lib/cors'
+
+export async function OPTIONS() {
+  return corsPreflightResponse()
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +18,7 @@ export async function POST(request: NextRequest) {
     const user = await authenticate(validatedData.email, validatedData.password)
     
     if (!user) {
-      return NextResponse.json(
+      return corsResponse(
         { error: 'E-mail ou senha inválidos' },
         { status: 401 }
       )
@@ -22,7 +27,7 @@ export async function POST(request: NextRequest) {
     // Criar sessão
     await createSession(user)
     
-    return NextResponse.json({
+    return corsResponse({
       message: 'Login realizado com sucesso',
       user: {
         id: user.userId,
@@ -35,13 +40,13 @@ export async function POST(request: NextRequest) {
     console.error('Login error:', error)
     
     if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
+      return corsResponse(
         { error: 'Dados inválidos', details: error },
         { status: 400 }
       )
     }
     
-    return NextResponse.json(
+    return corsResponse(
       { error: 'Erro interno do servidor' },
       { status: 500 }
     )
