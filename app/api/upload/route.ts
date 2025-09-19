@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { randomUUID } from 'crypto'
+import { put, del } from '@vercel/blob'
 import { prisma } from '@/lib/db'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -63,21 +61,13 @@ export async function POST(request: NextRequest) {
 
     // Gerar nome único para o arquivo
     const fileExtension = file.name.split('.').pop()
-    const fileName = `${randomUUID()}.${fileExtension}`
-    
-    // Criar diretório se não existir
-    const uploadDir = join(process.cwd(), 'public', 'uploads')
-    try {
-      await mkdir(uploadDir, { recursive: true })
-    } catch (_error) {
-      // Directory already exists
-    }
+    const fileName = `comprovantes/${despesaId}/${Date.now()}.${fileExtension}`
 
-    // Salvar arquivo
-    const filePath = join(uploadDir, fileName)
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    await writeFile(filePath, buffer)
+    // Upload para Vercel Blob
+    const blob = await put(fileName, file, {
+      access: 'public',
+      contentType: file.type,
+    })
 
     // Salvar no banco de dados
     const comprovante = await prisma.comprovante.create({
@@ -87,7 +77,7 @@ export async function POST(request: NextRequest) {
         nomeOriginal: file.name,
         tamanho: file.size,
         tipoMime: file.type,
-        url: `/uploads/${fileName}`
+        url: blob.url
       }
     })
 
@@ -133,13 +123,11 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Deletar arquivo físico
-    const filePath = join(process.cwd(), 'public', comprovante.url)
+    // Deletar arquivo do Vercel Blob
     try {
-      const { unlink } = await import('fs/promises')
-      await unlink(filePath)
+      await del(comprovante.url)
     } catch (error) {
-      console.error('Erro ao deletar arquivo:', error)
+      console.error('Erro ao deletar arquivo do Vercel Blob:', error)
       // Continue mesmo se não conseguir deletar o arquivo
     }
 
