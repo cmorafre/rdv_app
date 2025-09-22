@@ -30,6 +30,7 @@ const RelatorioFormSchema = z.object({
   status: z.enum(["em_andamento", "reembolsado"]).default("em_andamento"),
   cliente: z.string().optional(),
   observacoes: z.string().optional(),
+  adiantamento: z.number().min(0, "Adiantamento não pode ser negativo").max(100000, "Adiantamento não pode ser superior a R$ 100.000,00").optional(),
 }).refine((data) => {
   if (data.dataInicio && data.dataFim) {
     return new Date(data.dataFim) >= new Date(data.dataInicio)
@@ -58,6 +59,7 @@ export function NovoRelatorioForm() {
       status: "em_andamento",
       cliente: "",
       observacoes: "",
+      adiantamento: 0,
     },
   })
 
@@ -164,9 +166,9 @@ export function NovoRelatorioForm() {
                   <FormItem>
                     <FormLabel>Destino</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Ex: São Paulo - SP" 
-                        {...field} 
+                      <Input
+                        placeholder="Ex: São Paulo - SP"
+                        {...field}
                       />
                     </FormControl>
                     <FormDescription>
@@ -184,9 +186,9 @@ export function NovoRelatorioForm() {
                   <FormItem>
                     <FormLabel>Cliente</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Nome do cliente" 
-                        {...field} 
+                      <Input
+                        placeholder="Nome do cliente"
+                        {...field}
                       />
                     </FormControl>
                     <FormDescription>
@@ -197,6 +199,31 @@ export function NovoRelatorioForm() {
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="adiantamento"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Adiantamento</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100000"
+                      placeholder="0.00"
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : 0)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Valor depositado antecipadamente (R$). Este valor ficará disponível como saldo e será descontado conforme as despesas são lançadas.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

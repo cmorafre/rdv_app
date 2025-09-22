@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { AdiantamentoCalculator } from '@/lib/adiantamentos'
 
 const DespesaUpdateSchema = z.object({
   categoriaId: z.number().int().positive("Categoria é obrigatória").optional(),
@@ -19,6 +20,43 @@ const DespesaUpdateSchema = z.object({
   origem: z.string().optional(),
   destino: z.string().optional(),
 })
+
+// Função auxiliar para recalcular saldo do relatório
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function recalcularSaldoRelatorio(relatorioId: number, tx?: any) {
+  const prismaClient = tx || prisma
+
+  // Buscar relatório com suas despesas
+  const relatorio = await prismaClient.relatorio.findUnique({
+    where: { id: relatorioId },
+    include: {
+      despesas: true
+    }
+  })
+
+  if (!relatorio) return
+
+  // Calcular novo valor total das despesas
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const valorTotal = relatorio.despesas.reduce((total: number, despesa: any) => total + Number(despesa.valor), 0)
+  const adiantamento = Number(relatorio.adiantamento)
+
+  // Calcular novo saldo e reembolso
+  const calculo = AdiantamentoCalculator.calcularSaldo(adiantamento, valorTotal)
+
+  // Atualizar relatório
+  await prismaClient.relatorio.update({
+    where: { id: relatorioId },
+    data: {
+      valorTotal,
+      saldoRestante: calculo.saldoRestante,
+      valorReembolso: calculo.valorReembolso,
+      statusReembolso: calculo.statusReembolso
+    }
+  })
+
+  return calculo
+}
 
 export async function GET(
   request: NextRequest,
@@ -234,6 +272,9 @@ export async function PUT(
         }
       }
 
+      // Recalcular saldo do relatório após atualização da despesa
+      await recalcularSaldoRelatorio(despesaAtualizada.relatorioId, tx)
+
       return despesaAtualizada
     })
 
@@ -287,8 +328,17 @@ export async function DELETE(
       )
     }
 
-    await prisma.despesa.delete({
-      where: { id }
+    // Guardar relatorioId antes de deletar
+    const relatorioId = existingDespesa.relatorioId
+
+    // Usar transação para deletar despesa e recalcular saldo
+    await prisma.$transaction(async (tx) => {
+      await tx.despesa.delete({
+        where: { id }
+      })
+
+      // Recalcular saldo do relatório após exclusão da despesa
+      await recalcularSaldoRelatorio(relatorioId, tx)
     })
 
     return NextResponse.json({ message: "Despesa excluída com sucesso" })

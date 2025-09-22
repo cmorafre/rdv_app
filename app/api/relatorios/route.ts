@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { AdiantamentoCalculator } from '@/lib/adiantamentos'
 
 const RelatorioCreateSchema = z.object({
   titulo: z.string().min(1, "Título é obrigatório"),
@@ -12,6 +13,7 @@ const RelatorioCreateSchema = z.object({
   status: z.string().default("em_andamento"),
   cliente: z.string().optional().nullable(),
   observacoes: z.string().optional().nullable(),
+  adiantamento: z.number().min(0, "Adiantamento não pode ser negativo").max(100000, "Adiantamento não pode ser superior a R$ 100.000,00").default(0),
 })
 
 export async function GET(request: NextRequest) {
@@ -87,11 +89,24 @@ export async function GET(request: NextRequest) {
       take: pageSize
     })
 
-    const relatoriosComTotal = relatorios.map(relatorio => ({
-      ...relatorio,
-      valorTotal: relatorio.despesas.reduce((total, despesa) => total + Number(despesa.valor), 0),
-      totalDespesas: relatorio.despesas.length
-    }))
+    const relatoriosComTotal = relatorios.map(relatorio => {
+      const valorTotal = relatorio.despesas.reduce((total, despesa) => total + Number(despesa.valor), 0)
+      const adiantamento = Number(relatorio.adiantamento)
+
+      // Calcular saldo e reembolso
+      const calculo = AdiantamentoCalculator.calcularSaldo(adiantamento, valorTotal)
+
+      return {
+        ...relatorio,
+        valorTotal,
+        totalDespesas: relatorio.despesas.length,
+        adiantamento,
+        saldoRestante: calculo.saldoRestante,
+        valorReembolso: calculo.valorReembolso,
+        statusReembolso: calculo.statusReembolso,
+        tipoReembolso: calculo.tipoReembolso
+      }
+    })
 
     return NextResponse.json({
       relatorios: relatoriosComTotal,
@@ -130,8 +145,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Calcular valores iniciais
+    const adiantamento = validatedData.adiantamento || 0
+    const saldoRestante = adiantamento // Inicialmente, saldo = adiantamento
+    const valorReembolso = 0 // Sem despesas ainda
+    const statusReembolso = adiantamento > 0 ? 'pendente' : 'quitado'
+
     const relatorio = await prisma.relatorio.create({
-      data: validatedData,
+      data: {
+        ...validatedData,
+        saldoRestante,
+        valorReembolso,
+        statusReembolso
+      },
       include: {
         despesas: {
           include: {

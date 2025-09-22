@@ -24,21 +24,25 @@ model Usuario {
 
 // Relatórios
 model Relatorio {
-  id          Int      @id @default(autoincrement())
-  titulo      String
-  dataInicio  DateTime @map("data_inicio")
-  dataFim     DateTime @map("data_fim")
-  destino     String?
-  proposito   String?
-  status      String   @default("em_andamento")
-  cliente     String?
-  observacoes String?
-  valorTotal  Decimal  @default(0) @map("valor_total")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
+  id              Int      @id @default(autoincrement())
+  titulo          String
+  dataInicio      DateTime @map("data_inicio")
+  dataFim         DateTime @map("data_fim")
+  destino         String?
+  proposito       String?
+  status          String   @default("em_andamento")
+  cliente         String?
+  observacoes     String?
+  valorTotal      Decimal  @default(0) @map("valor_total")
+  adiantamento    Decimal  @default(0)
+  saldoRestante   Decimal  @default(0) @map("saldo_restante")
+  valorReembolso  Decimal? @map("valor_reembolso")
+  statusReembolso String   @default("pendente") @map("status_reembolso")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
   // Relacionamentos
-  despesas    Despesa[]
+  despesas        Despesa[]
 
   @@map("relatorios")
 }
