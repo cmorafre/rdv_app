@@ -11,6 +11,7 @@ import { Edit, ArrowLeft, Download, DollarSign, AlertTriangle, CheckCircle, Rota
 import Link from "next/link"
 import { toast } from "sonner"
 import { DespesasDoRelatorio } from "@/components/relatorios/despesas-do-relatorio"
+import { SaldoDisplay } from "@/components/ui/saldo-display"
 
 interface Relatorio {
   id: number
@@ -24,6 +25,11 @@ interface Relatorio {
   observacoes?: string
   valorTotal: number
   totalDespesas: number
+  adiantamento?: number
+  saldoRestante?: number
+  valorReembolso?: number
+  statusReembolso?: string
+  tipoReembolso?: string
   createdAt: string
   despesas: Array<{
     id: number
@@ -343,7 +349,7 @@ export default function VisualizarRelatorio() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Informações Gerais</CardTitle>
@@ -359,28 +365,28 @@ export default function VisualizarRelatorio() {
                   <p className="font-medium">{formatDate(relatorio.dataFim)}</p>
                 </div>
               </div>
-              
+
               {relatorio.destino && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Destino</label>
                   <p className="font-medium">{relatorio.destino}</p>
                 </div>
               )}
-              
+
               {relatorio.proposito && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Propósito</label>
                   <p className="font-medium">{relatorio.proposito}</p>
                 </div>
               )}
-              
+
               {relatorio.cliente && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Cliente</label>
                   <p className="font-medium">{relatorio.cliente}</p>
                 </div>
               )}
-              
+
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Status</label>
                 <div className="mt-1">
@@ -407,8 +413,27 @@ export default function VisualizarRelatorio() {
                   <p className="text-2xl font-bold">{formatCurrency(relatorio.valorTotal)}</p>
                 </div>
               </div>
+
+              {relatorio.adiantamento && relatorio.adiantamento > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Adiantamento</label>
+                  <p className="text-lg font-semibold text-blue-600">{formatCurrency(relatorio.adiantamento)}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {relatorio.adiantamento && relatorio.adiantamento > 0 && relatorio.saldoRestante !== undefined && (
+            <div className="md:col-span-1">
+              <SaldoDisplay
+                saldoRestante={relatorio.saldoRestante}
+                valorReembolso={relatorio.valorReembolso}
+                statusReembolso={relatorio.statusReembolso || 'pendente'}
+                size="lg"
+                showReembolso={true}
+              />
+            </div>
+          )}
         </div>
 
         {relatorio.observacoes && (

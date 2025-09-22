@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, Edit, Trash2, Eye, FileText, Download } from "lucide-react"
 import { toast } from "sonner"
+import { SaldoCompact } from "@/components/ui/saldo-display"
 
 interface Relatorio {
   id: number
@@ -31,6 +32,11 @@ interface Relatorio {
   status: string
   cliente?: string
   valorTotal: number
+  adiantamento?: number
+  saldoRestante?: number
+  valorReembolso?: number
+  statusReembolso?: string
+  tipoReembolso?: string
   createdAt: string
 }
 
@@ -168,6 +174,7 @@ export function RelatoriosList({ relatorios, loading, onDelete }: RelatoriosList
               <TableHead>Cliente</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Valor Total</TableHead>
+              <TableHead className="text-center">Saldo</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -198,6 +205,13 @@ export function RelatoriosList({ relatorios, loading, onDelete }: RelatoriosList
                 </TableCell>
                 <TableCell className="text-right font-medium">
                   {formatCurrency(relatorio.valorTotal)}
+                </TableCell>
+                <TableCell className="text-center">
+                  {relatorio.saldoRestante !== undefined ? (
+                    <SaldoCompact saldoRestante={relatorio.saldoRestante} size="sm" />
+                  ) : (
+                    <span className="text-muted-foreground text-sm">-</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
