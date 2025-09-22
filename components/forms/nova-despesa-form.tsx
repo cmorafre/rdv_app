@@ -330,7 +330,7 @@ export function NovaDespesaForm() {
                     <FormLabel>Relatório *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Selecione um relatório" />
                         </SelectTrigger>
                       </FormControl>
@@ -364,7 +364,7 @@ export function NovaDespesaForm() {
                     <FormLabel>Categoria *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value?.toString()}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Selecione uma categoria" />
                         </SelectTrigger>
                       </FormControl>
@@ -434,12 +434,11 @@ export function NovaDespesaForm() {
                         }}
                       />
                     </FormControl>
-                    <FormDescription>
-                      {isQuilometragem 
-                        ? "Valor calculado automaticamente (Km × Valor por Km do veículo)"
-                        : "Use vírgula como separador decimal"
-                      }
-                    </FormDescription>
+                    {isQuilometragem && (
+                      <FormDescription>
+                        Valor calculado automaticamente (Km × Valor por Km do veículo)
+                      </FormDescription>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -515,12 +514,12 @@ export function NovaDespesaForm() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Veículo *</FormLabel>
-                        <Select 
-                          onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} 
+                        <Select
+                          onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
                           value={field.value?.toString()}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Selecione o veículo" />
                             </SelectTrigger>
                           </FormControl>
