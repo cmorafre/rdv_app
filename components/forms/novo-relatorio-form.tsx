@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CurrencyInput } from "@/components/ui/currency-input"
 import {
   Form,
   FormControl,
@@ -30,7 +31,7 @@ const RelatorioFormSchema = z.object({
   status: z.enum(["em_andamento", "reembolsado"]).default("em_andamento"),
   cliente: z.string().optional(),
   observacoes: z.string().optional(),
-  adiantamento: z.number().min(0, "Adiantamento não pode ser negativo").max(100000, "Adiantamento não pode ser superior a R$ 100.000,00").optional(),
+  adiantamento: z.string().optional(),
 }).refine((data) => {
   if (data.dataInicio && data.dataFim) {
     return new Date(data.dataFim) >= new Date(data.dataInicio)
@@ -59,19 +60,27 @@ export function NovoRelatorioForm() {
       status: "em_andamento",
       cliente: "",
       observacoes: "",
-      adiantamento: 0,
+      adiantamento: "",
     },
   })
 
   const onSubmit = async (data: RelatorioFormValues) => {
     setIsLoading(true)
     try {
+      // Converter valor string para número
+      const adiantamentoNumber = data.adiantamento
+        ? parseFloat(data.adiantamento.replace(',', '.')) || 0
+        : 0
+
       const response = await fetch("/api/relatorios", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          adiantamento: adiantamentoNumber
+        }),
       })
 
       if (!response.ok) {
@@ -207,14 +216,9 @@ export function NovoRelatorioForm() {
                 <FormItem>
                   <FormLabel>Adiantamento</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="100000"
-                      placeholder="0.00"
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : 0)}
+                    <CurrencyInput
+                      value={field.value}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormDescription>

@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CurrencyInput } from "@/components/ui/currency-input"
 import {
   Form,
   FormControl,
@@ -33,6 +34,7 @@ const RelatorioEditSchema = z.object({
   status: z.enum(["em_andamento", "reembolsado"]),
   cliente: z.string().optional(),
   observacoes: z.string().optional(),
+  adiantamento: z.string().optional(),
 }).refine((data) => {
   if (data.dataInicio && data.dataFim) {
     return new Date(data.dataFim) >= new Date(data.dataInicio)
@@ -55,6 +57,7 @@ interface Relatorio {
   status: string
   cliente?: string
   observacoes?: string
+  adiantamento?: number
 }
 
 export default function EditarRelatorio() {
@@ -77,6 +80,7 @@ export default function EditarRelatorio() {
       status: "em_andamento",
       cliente: "",
       observacoes: "",
+      adiantamento: "",
     },
   })
 
@@ -116,6 +120,7 @@ export default function EditarRelatorio() {
         status: data.status as "em_andamento" | "reembolsado",
         cliente: data.cliente || "",
         observacoes: data.observacoes || "",
+        adiantamento: data.adiantamento ? data.adiantamento.toString().replace('.', ',') : "",
       })
     } catch (error) {
       console.error("Erro ao carregar relatório:", error)
@@ -128,12 +133,20 @@ export default function EditarRelatorio() {
   const onSubmit = async (data: RelatorioEditFormValues) => {
     setSaving(true)
     try {
+      // Converter valor string para número
+      const adiantamentoNumber = data.adiantamento
+        ? parseFloat(data.adiantamento.replace(',', '.')) || 0
+        : 0
+
       const response = await fetch(`/api/relatorios/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          adiantamento: adiantamentoNumber
+        }),
       })
 
       if (!response.ok) {
@@ -286,9 +299,9 @@ export default function EditarRelatorio() {
                       <FormItem>
                         <FormLabel>Destino</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Ex: São Paulo - SP" 
-                            {...field} 
+                          <Input
+                            placeholder="Ex: São Paulo - SP"
+                            {...field}
                           />
                         </FormControl>
                         <FormDescription>
@@ -306,9 +319,9 @@ export default function EditarRelatorio() {
                       <FormItem>
                         <FormLabel>Cliente</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Nome do cliente" 
-                            {...field} 
+                          <Input
+                            placeholder="Nome do cliente"
+                            {...field}
                           />
                         </FormControl>
                         <FormDescription>
@@ -322,14 +335,34 @@ export default function EditarRelatorio() {
 
                 <FormField
                   control={form.control}
+                  name="adiantamento"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Adiantamento</FormLabel>
+                      <FormControl>
+                        <CurrencyInput
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Valor depositado antecipadamente (R$). Este valor ficará disponível como saldo e será descontado conforme as despesas são lançadas.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="proposito"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Propósito</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Ex: Reunião de negócios, treinamento, visita técnica" 
-                          {...field} 
+                        <Input
+                          placeholder="Ex: Reunião de negócios, treinamento, visita técnica"
+                          {...field}
                         />
                       </FormControl>
                       <FormDescription>

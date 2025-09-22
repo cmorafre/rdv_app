@@ -96,11 +96,12 @@ export default function VisualizarRelatorio() {
     }
   }
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | string) => {
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL"
-    }).format(value)
+    }).format(numericValue)
   }
 
   const formatDate = (date: string) => {

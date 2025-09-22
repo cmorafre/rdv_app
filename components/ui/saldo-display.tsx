@@ -118,7 +118,7 @@ export function SaldoCompact({ saldoRestante, size = "sm" }: { saldoRestante: nu
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 justify-end">
       {getSaldoIcon()}
       <span
         className={cn(

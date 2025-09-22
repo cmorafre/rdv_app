@@ -5,6 +5,18 @@ export class AdiantamentoCalculator {
    * Calcula o saldo restante e valor de reembolso
    */
   static calcularSaldo(adiantamento: number, valorTotal: number): CalculoAdiantamento {
+    // Se não há adiantamento, não há saldo para calcular
+    if (!adiantamento || adiantamento <= 0) {
+      return {
+        adiantamento: 0,
+        valorTotal,
+        saldoRestante: 0, // Sem adiantamento = sem saldo
+        valorReembolso: 0,
+        statusReembolso: 'quitado',
+        tipoReembolso: 'QUITADO'
+      }
+    }
+
     const saldoRestante = adiantamento - valorTotal
 
     let statusReembolso: CalculoAdiantamento['statusReembolso']
@@ -43,13 +55,20 @@ export class AdiantamentoCalculator {
     let descricao: string
     let cor: ReembolsoInfo['cor']
 
+    const formatarValor = (valor: number) => {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(Math.abs(valor))
+    }
+
     switch (tipoReembolso) {
       case 'A_RECEBER':
-        descricao = `A RECEBER: R$ ${Math.abs(valorReembolso).toFixed(2)}`
+        descricao = `A RECEBER: ${formatarValor(valorReembolso)}`
         cor = 'green'
         break
       case 'A_DEVOLVER':
-        descricao = `A DEVOLVER: R$ ${Math.abs(valorReembolso).toFixed(2)}`
+        descricao = `A DEVOLVER: ${formatarValor(valorReembolso)}`
         cor = 'red'
         break
       case 'QUITADO':
@@ -75,7 +94,10 @@ export class AdiantamentoCalculator {
     cor: 'green' | 'red' | 'gray'
     status: 'positivo' | 'negativo' | 'zero'
   } {
-    const valorFormatado = `R$ ${Math.abs(saldoRestante).toFixed(2)}`
+    const valorFormatado = new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(Math.abs(saldoRestante))
 
     if (saldoRestante > 0) {
       return {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { AdiantamentoCalculator } from '@/lib/adiantamentos'
 
 const RelatorioUpdateSchema = z.object({
   titulo: z.string().min(1, "Título é obrigatório").optional(),
@@ -12,6 +13,7 @@ const RelatorioUpdateSchema = z.object({
   status: z.string().optional(),
   cliente: z.string().optional().nullable(),
   observacoes: z.string().optional().nullable(),
+  adiantamento: z.number().optional(),
 })
 
 export async function GET(
@@ -61,10 +63,28 @@ export async function GET(
       )
     }
 
+    const valorTotal = relatorio.despesas.reduce((total, despesa) => total + Number(despesa.valor), 0)
+
+    // Calcular saldo do adiantamento se houver
+    let calculoAdiantamento = null
+    if (relatorio.adiantamento && relatorio.adiantamento > 0) {
+      calculoAdiantamento = AdiantamentoCalculator.calcularSaldo(
+        Number(relatorio.adiantamento),
+        valorTotal
+      )
+    }
+
     const relatorioComTotal = {
       ...relatorio,
-      valorTotal: relatorio.despesas.reduce((total, despesa) => total + Number(despesa.valor), 0),
-      totalDespesas: relatorio.despesas.length
+      adiantamento: relatorio.adiantamento ? Number(relatorio.adiantamento) : 0,
+      valorTotal,
+      totalDespesas: relatorio.despesas.length,
+      ...(calculoAdiantamento && {
+        saldoRestante: calculoAdiantamento.saldoRestante,
+        valorReembolso: calculoAdiantamento.valorReembolso,
+        statusReembolso: calculoAdiantamento.statusReembolso,
+        tipoReembolso: calculoAdiantamento.tipoReembolso
+      })
     }
 
     return NextResponse.json(relatorioComTotal)

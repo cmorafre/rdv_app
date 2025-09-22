@@ -174,7 +174,7 @@ export function RelatoriosList({ relatorios, loading, onDelete }: RelatoriosList
               <TableHead>Cliente</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Valor Total</TableHead>
-              <TableHead className="text-center">Saldo</TableHead>
+              <TableHead className="text-right">Saldo</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -206,8 +206,8 @@ export function RelatoriosList({ relatorios, loading, onDelete }: RelatoriosList
                 <TableCell className="text-right font-medium">
                   {formatCurrency(relatorio.valorTotal)}
                 </TableCell>
-                <TableCell className="text-center">
-                  {relatorio.saldoRestante !== undefined ? (
+                <TableCell className="text-right">
+                  {relatorio.adiantamento && relatorio.adiantamento > 0 && relatorio.saldoRestante !== undefined ? (
                     <SaldoCompact saldoRestante={relatorio.saldoRestante} size="sm" />
                   ) : (
                     <span className="text-muted-foreground text-sm">-</span>
