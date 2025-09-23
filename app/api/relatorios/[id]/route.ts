@@ -67,7 +67,7 @@ export async function GET(
 
     // Calcular saldo do adiantamento se houver
     let calculoAdiantamento = null
-    if (relatorio.adiantamento && relatorio.adiantamento > 0) {
+    if (relatorio.adiantamento && Number(relatorio.adiantamento) > 0) {
       calculoAdiantamento = AdiantamentoCalculator.calcularSaldo(
         Number(relatorio.adiantamento),
         valorTotal
