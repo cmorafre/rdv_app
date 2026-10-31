@@ -12,7 +12,7 @@ const protectedRoutes = [
 ]
 
 // Rotas de autenticação (redirecionam se já autenticado)
-const authRoutes = ['/login', '/register']
+const authRoutes = ['/login']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
