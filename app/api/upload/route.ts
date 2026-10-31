@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/auth'
 import { put, del } from '@vercel/blob'
 import { prisma } from '@/lib/db'
 
@@ -13,6 +14,12 @@ const ALLOWED_TYPES = [
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await requireAuth(request)
+
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File
     const despesaId = formData.get('despesaId') as string
@@ -101,6 +108,12 @@ export async function POST(request: NextRequest) {
 // Deletar comprovante
 export async function DELETE(request: NextRequest) {
   try {
+    const authResult = await requireAuth(request)
+
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const { searchParams } = new URL(request.url)
     const comprovanteId = searchParams.get('id')
 

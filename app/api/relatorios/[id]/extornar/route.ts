@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/auth'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
@@ -8,6 +9,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const authResult = await requireAuth(request)
+
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const { id } = await params
     const relatorioId = parseInt(id)
 

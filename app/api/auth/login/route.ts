@@ -24,11 +24,12 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Criar sessão
-    await createSession(user)
+    // Criar sessão (cookie para o web, token no corpo para o app mobile)
+    const token = await createSession(user)
     
     return corsResponse({
       message: 'Login realizado com sucesso',
+      token,
       user: {
         id: user.userId,
         email: user.email,

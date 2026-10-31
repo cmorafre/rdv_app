@@ -1,4 +1,5 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { corsPreflightResponse, corsResponse } from '@/lib/cors'
 
@@ -9,20 +10,10 @@ export async function OPTIONS() {
 export async function GET(request: NextRequest) {
   try {
     // Verificar autenticação
-    const isMobileRequest = request.headers.get('X-Mobile-Test') === 'true'
-    
-    if (!isMobileRequest) {
-      // Para web, verificar sessão normal
-      const token = request.cookies.get('session')?.value
-      if (!token) {
-        return corsResponse({ error: 'Não autorizado' }, { status: 401 })
-      }
-      
-      const { verifyToken } = await import('@/lib/auth')
-      const session = await verifyToken(token)
-      if (!session) {
-        return corsResponse({ error: 'Token inválido' }, { status: 401 })
-      }
+    const authResult = await requireAuth(request)
+
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     // Obter data atual e do mês anterior para comparação
