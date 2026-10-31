@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import Link from 'next/link'
 import { LoginFormData, loginSchema } from '@/lib/validations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -106,12 +105,6 @@ export default function LoginPage() {
               {isLoading ? 'Entrando...' : 'Entrar'}
             </Button>
 
-            <div className="text-center text-sm">
-              <span className="text-gray-600">Não tem uma conta? </span>
-              <Link href="/register" className="text-blue-600 hover:underline">
-                Criar conta
-              </Link>
-            </div>
           </form>
         </CardContent>
       </Card>

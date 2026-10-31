@@ -7,9 +7,12 @@ import { hashPassword, comparePassword } from './crypto'
 // Re-export para compatibilidade
 export { hashPassword }
 
-const secretKey = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'rdv-app-super-secret-key-2025'
-)
+// Sem valor padrão: um segredo conhecido permitiria forjar logins
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET não configurado')
+}
+
+const secretKey = new TextEncoder().encode(process.env.JWT_SECRET)
 
 export interface SessionPayload {
   userId: number
@@ -118,16 +121,6 @@ export async function requireAuth(request: NextRequest): Promise<SessionPayload 
   const token = getRequestToken(request)
 
   if (!token) {
-    // TEMPORÁRIO: bypass para o APK antigo, que não envia token.
-    // Remover assim que o APK com autenticação por Bearer token estiver instalado.
-    if (request.headers.get('X-Mobile-Test') === 'true') {
-      return {
-        userId: 1,
-        email: 'teste@rdv.com',
-        nome: 'Usuário Teste'
-      }
-    }
-
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
