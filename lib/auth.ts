@@ -43,8 +43,8 @@ export async function verifyPassword(password: string, hashedPassword: string): 
   return comparePassword(password, hashedPassword)
 }
 
-// Criar sessão (cookie)
-export async function createSession(payload: SessionPayload) {
+// Criar sessão (cookie) e retornar o token para clientes sem cookie (app mobile)
+export async function createSession(payload: SessionPayload): Promise<string> {
   const token = await generateToken(payload)
   const cookieStore = await cookies()
   
@@ -54,6 +54,8 @@ export async function createSession(payload: SessionPayload) {
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 7, // 7 dias
   })
+
+  return token
 }
 
 // Obter sessão do cookie
@@ -100,23 +102,32 @@ export async function authenticate(email: string, password: string): Promise<Ses
   }
 }
 
-// Middleware para verificar autenticação em API routes
-export async function requireAuth(request: NextRequest): Promise<SessionPayload | NextResponse> {
-  // Verificar se é requisição mobile (bypass temporário)
-  const isMobileRequest = request.headers.get('X-Mobile-Test') === 'true'
-  
-  if (isMobileRequest) {
-    // Para mobile, criar uma sessão fake para testes
-    return {
-      userId: 1,
-      email: 'teste@rdv.com',
-      nome: 'Usuário Teste'
-    }
+// Token da requisição: header Authorization (app mobile) ou cookie de sessão (web)
+function getRequestToken(request: NextRequest): string | undefined {
+  const authorization = request.headers.get('Authorization')
+
+  if (authorization?.startsWith('Bearer ')) {
+    return authorization.slice('Bearer '.length).trim()
   }
 
-  const token = request.cookies.get('session')?.value
+  return request.cookies.get('session')?.value
+}
+
+// Middleware para verificar autenticação em API routes
+export async function requireAuth(request: NextRequest): Promise<SessionPayload | NextResponse> {
+  const token = getRequestToken(request)
 
   if (!token) {
+    // TEMPORÁRIO: bypass para o APK antigo, que não envia token.
+    // Remover assim que o APK com autenticação por Bearer token estiver instalado.
+    if (request.headers.get('X-Mobile-Test') === 'true') {
+      return {
+        userId: 1,
+        email: 'teste@rdv.com',
+        nome: 'Usuário Teste'
+      }
+    }
+
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
