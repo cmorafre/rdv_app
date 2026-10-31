@@ -517,7 +517,7 @@ export function NovaDespesaForm() {
                       <FormItem>
                         <FormLabel>Veículo *</FormLabel>
                         <Select
-                          onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                          onValueChange={(value) => field.onChange(value || undefined)}
                           value={field.value?.toString()}
                         >
                           <FormControl>
