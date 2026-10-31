@@ -64,6 +64,8 @@ const createDespesaEditSchema = (isQuilometragem: boolean) => z.object({
 
 const _DespesaEditSchema = createDespesaEditSchema(false)
 
+// Valores do formulário são texto (selects e inputs); o schema converte para número no envio
+type DespesaEditInput = z.input<ReturnType<typeof createDespesaEditSchema>>
 type DespesaEditValues = z.infer<ReturnType<typeof createDespesaEditSchema>>
 
 interface Categoria {
@@ -140,23 +142,23 @@ export function EditDespesaForm({ despesa }: EditDespesaFormProps) {
   const [isQuilometragem, setIsQuilometragem] = useState(despesa.categoria.nome === "Quilometragem")
   const router = useRouter()
 
-  const form = useForm<DespesaEditValues>({
+  const form = useForm<DespesaEditInput, unknown, DespesaEditValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(createDespesaEditSchema(isQuilometragem)) as any,
     defaultValues: {
-      relatorioId: despesa.relatorio.id,
-      categoriaId: despesa.categoria.id,
+      relatorioId: String(despesa.relatorio.id),
+      categoriaId: String(despesa.categoria.id),
       dataDespesa: new Date(despesa.dataDespesa).toISOString().split('T')[0],
       descricao: despesa.descricao || "",
       fornecedor: despesa.fornecedor || "",
-      valor: despesa.valor,
+      valor: String(despesa.valor).replace(".", ","),
       observacoes: despesa.observacoes || "",
       reembolsavel: despesa.reembolsavel,
       clienteACobrar: true, // sempre true agora
       reembolsada: despesa.reembolsada || false,
       // Campos específicos de quilometragem
-      veiculoId: despesa.despesaQuilometragem?.veiculoId || undefined,
-      quilometragem: despesa.despesaQuilometragem?.distanciaKm || undefined,
+      veiculoId: despesa.despesaQuilometragem?.veiculoId?.toString(),
+      quilometragem: despesa.despesaQuilometragem?.distanciaKm?.toString(),
       origem: despesa.despesaQuilometragem?.origem || undefined,
       destino: despesa.despesaQuilometragem?.destino || undefined,
     },
@@ -212,7 +214,7 @@ export function EditDespesaForm({ despesa }: EditDespesaFormProps) {
   useEffect(() => {
     const categoriaId = form.watch("categoriaId")
     if (categorias.length > 0 && categoriaId) {
-      const categoria = categorias.find(c => c.id === categoriaId)
+      const categoria = categorias.find(c => c.id === Number(categoriaId))
       const isKilometragem = categoria?.nome === "Quilometragem"
       setIsQuilometragem(isKilometragem)
       
@@ -234,11 +236,11 @@ export function EditDespesaForm({ despesa }: EditDespesaFormProps) {
       const quilometragem = form.watch("quilometragem")
       
       if (veiculoId && quilometragem) {
-        const veiculo = veiculos.find(v => v.id === veiculoId)
+        const veiculo = veiculos.find(v => v.id === Number(veiculoId))
         if (veiculo) {
           const valorPorKm = parseFloat(veiculo.valorPorKm.toString())
           const valorCalculado = parseFloat(quilometragem.toString()) * valorPorKm
-          form.setValue("valor", valorCalculado)
+          form.setValue("valor", valorCalculado.toFixed(2).replace(".", ","))
         }
       }
     }

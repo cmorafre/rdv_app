@@ -67,6 +67,8 @@ const createDespesaSchema = (isQuilometragem: boolean) => z.object({
 
 const _DespesaSchema = createDespesaSchema(false)
 
+// Valores do formulário são texto (selects e inputs); o schema converte para número no envio
+type DespesaFormInput = z.input<ReturnType<typeof createDespesaSchema>>
 type DespesaFormValues = z.infer<ReturnType<typeof createDespesaSchema>>
 
 interface Relatorio {
@@ -106,16 +108,16 @@ export function NovaDespesaForm() {
   
   const preSelectedRelatorioId = searchParams.get("relatorio")
 
-  const form = useForm<DespesaFormValues>({
+  const form = useForm<DespesaFormInput, unknown, DespesaFormValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(createDespesaSchema(isQuilometragem)) as any,
     defaultValues: {
-      relatorioId: preSelectedRelatorioId ? parseInt(preSelectedRelatorioId) : 0,
-      categoriaId: 0,
+      relatorioId: preSelectedRelatorioId ?? "",
+      categoriaId: "",
       dataDespesa: new Date().toISOString().split('T')[0],
       descricao: "",
       fornecedor: "",
-      valor: 0,
+      valor: "",
       observacoes: "",
       reembolsavel: true,
       clienteACobrar: true,
@@ -177,7 +179,7 @@ export function NovaDespesaForm() {
   useEffect(() => {
     const categoriaId = form.watch("categoriaId")
     if (categorias.length > 0 && categoriaId) {
-      const categoria = categorias.find(c => c.id === categoriaId)
+      const categoria = categorias.find(c => c.id === Number(categoriaId))
       const isKilometragem = categoria?.nome === "Quilometragem"
       setIsQuilometragem(isKilometragem)
       
@@ -206,11 +208,11 @@ export function NovaDespesaForm() {
       const quilometragem = form.watch("quilometragem")
       
       if (veiculoId && quilometragem) {
-        const veiculo = veiculos.find(v => v.id === veiculoId)
+        const veiculo = veiculos.find(v => v.id === Number(veiculoId))
         if (veiculo) {
           const valorPorKm = parseFloat(veiculo.valorPorKm.toString())
           const valorCalculado = parseFloat(quilometragem.toString()) * valorPorKm
-          form.setValue("valor", valorCalculado)
+          form.setValue("valor", valorCalculado.toFixed(2).replace(".", ","))
         }
       }
     }
@@ -502,7 +504,7 @@ export function NovaDespesaForm() {
                     origin={form.watch("origem") || ""}
                     destination={form.watch("destino") || ""}
                     onDistanceCalculated={(distanceKm) => {
-                      form.setValue("quilometragem", distanceKm)
+                      form.setValue("quilometragem", String(distanceKm))
                     }}
                   />
                 )}
