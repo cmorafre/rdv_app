@@ -31,14 +31,13 @@ model Usuario {
   email     String   @unique
   senha     String
   nome      String
-  // Opcional até a migração B; o código novo sempre preenche
-  contaId   Int?     @map("conta_id")
+  contaId   Int      @map("conta_id")
   perfil    String   @default("usuario") // gestor | usuario
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  conta               Conta?      @relation(fields: [contaId], references: [id])
+  conta               Conta       @relation(fields: [contaId], references: [id])
   relatorios          Relatorio[] @relation("RelatorioDono")
   relatoriosAprovados Relatorio[] @relation("RelatorioAprovador")
   veiculos            Veiculo[]
@@ -63,9 +62,9 @@ model Relatorio {
   saldoRestante    Decimal   @default(0) @map("saldo_restante")
   valorReembolso   Decimal?  @map("valor_reembolso")
   statusReembolso  String    @default("pendente") @map("status_reembolso")
-  // Dono (opcionais até a migração B)
-  contaId          Int?      @map("conta_id")
-  usuarioId        Int?      @map("usuario_id")
+  // Dono
+  contaId          Int       @map("conta_id")
+  usuarioId        Int       @map("usuario_id")
   // Aprovação: guarda só a última
   enviadoEm        DateTime? @map("enviado_em")
   aprovadoEm       DateTime? @map("aprovado_em")
@@ -76,8 +75,8 @@ model Relatorio {
 
   // Relacionamentos
   despesas    Despesa[]
-  conta       Conta?    @relation(fields: [contaId], references: [id])
-  usuario     Usuario?  @relation("RelatorioDono", fields: [usuarioId], references: [id])
+  conta       Conta     @relation(fields: [contaId], references: [id])
+  usuario     Usuario   @relation("RelatorioDono", fields: [usuarioId], references: [id])
   aprovadoPor Usuario?  @relation("RelatorioAprovador", fields: [aprovadoPorId], references: [id])
 
   @@index([contaId, usuarioId])
@@ -106,21 +105,22 @@ model Veiculo {
   modelo        String?
   categoria     String?
   combustivel   String?
-  identificacao String   @unique
+  identificacao String // placa: única dentro da conta
   potencia      Int?
   valorPorKm    Decimal  @map("valor_por_km")
   ativo         Boolean  @default(true)
-  // Dono (opcionais até a migração B)
-  contaId       Int?     @map("conta_id")
-  usuarioId     Int?     @map("usuario_id")
+  // Dono
+  contaId       Int      @map("conta_id")
+  usuarioId     Int      @map("usuario_id")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
 
   // Relacionamentos
   despesasQuilometragem DespesaQuilometragem[]
-  conta                 Conta?                 @relation(fields: [contaId], references: [id])
-  usuario               Usuario?               @relation(fields: [usuarioId], references: [id])
+  conta                 Conta                  @relation(fields: [contaId], references: [id])
+  usuario               Usuario                @relation(fields: [usuarioId], references: [id])
 
+  @@unique([contaId, identificacao])
   @@index([contaId, usuarioId])
   @@map("veiculos")
 }

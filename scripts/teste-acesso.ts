@@ -75,13 +75,13 @@ async function main() {
   const alim = await prisma.categoria.create({ data: { nome: 'Alimentação' } })
   const km = await prisma.categoria.create({ data: { nome: 'Quilometragem' } })
 
-  const v = (identificacao: string, dono: { id: number; contaId: number | null }) =>
+  const v = (identificacao: string, dono: { id: number; contaId: number }) =>
     prisma.veiculo.create({ data: { tipo: 'pessoal', identificacao, valorPorKm: 1, contaId: dono.contaId, usuarioId: dono.id } })
   const vgA = await v('GA-0001', gA)
   const vuA = await v('UA-0001', uA)
   const vgB = await v('GB-0001', gB)
 
-  const r = (titulo: string, dono: { id: number; contaId: number | null }) =>
+  const r = (titulo: string, dono: { id: number; contaId: number }) =>
     prisma.relatorio.create({ data: { titulo, dataInicio: new Date('2026-11-01'), dataFim: new Date('2026-11-30'), contaId: dono.contaId, usuarioId: dono.id } })
   const rgA = await r('Rel gestor A', gA)
   const ruA = await r('Rel usuário A', uA)
@@ -177,6 +177,14 @@ async function main() {
   confere('DELETE veículo de outra conta → 404', (await chama('veiculo', 'DELETE', T.gA, { id: vgB.id })).status === 404)
   res = await chama('veiculos', 'POST', T.uA, { body: { tipo: 'pessoal', identificacao: 'NOVO-1', valorPorKm: 1 } })
   confere('veículo novo grava conta e dono', res.status === 201 && res.json.contaId === contaA.id && res.json.usuarioId === uA.id, res.json)
+  res = await chama('veiculos', 'POST', T.gB, { body: { tipo: 'pessoal', identificacao: 'GA-0001', valorPorKm: 1 } })
+  confere('mesma placa em outra conta → 201', res.status === 201, res.json)
+  confere('placa repetida na mesma conta (outro usuário) → 400',
+    (await chama('veiculos', 'POST', T.uA, { body: { tipo: 'pessoal', identificacao: 'GA-0001', valorPorKm: 1 } })).status === 400)
+  confere('editar para placa já usada na conta → 400',
+    (await chama('veiculo', 'PUT', T.uA, { id: vuA.id, body: { identificacao: 'GA-0001' } })).status === 400)
+  confere('editar para placa usada só em outra conta → 200',
+    (await chama('veiculo', 'PUT', T.gB, { id: vgB.id, body: { identificacao: 'UA-0001' } })).status === 200)
 
   // ---------- Usuários ----------
   console.log('Usuários')

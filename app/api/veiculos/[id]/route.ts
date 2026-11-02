@@ -117,8 +117,8 @@ export async function PUT(
 
     // Se está mudando a identificação, verificar se não existe outro veículo com a mesma
     if (validatedData.identificacao && validatedData.identificacao !== existingVeiculo.identificacao) {
-      const duplicateVeiculo = await prisma.veiculo.findUnique({
-        where: { identificacao: validatedData.identificacao }
+      const duplicateVeiculo = await prisma.veiculo.findFirst({
+        where: { contaId: existingVeiculo.contaId, identificacao: validatedData.identificacao }
       })
 
       if (duplicateVeiculo) {

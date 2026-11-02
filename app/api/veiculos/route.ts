@@ -105,9 +105,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = VeiculoCreateSchema.parse(body)
 
-    // Verificar se já existe um veículo com a mesma identificação
-    const existingVeiculo = await prisma.veiculo.findUnique({
-      where: { identificacao: validatedData.identificacao }
+    // A placa é única dentro da conta
+    const existingVeiculo = await prisma.veiculo.findFirst({
+      where: { contaId: authResult.contaId, identificacao: validatedData.identificacao }
     })
 
     if (existingVeiculo) {
