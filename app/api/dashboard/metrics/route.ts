@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { escopoDespesa, escopoRelatorio } from '@/lib/escopo'
 import { corsPreflightResponse, corsResponse } from '@/lib/cors'
 
 export async function OPTIONS() {
@@ -37,6 +38,7 @@ export async function GET(request: NextRequest) {
         _sum: { valor: true },
         _count: true,
         where: {
+          ...escopoDespesa(authResult),
           dataDespesa: {
             gte: currentMonth,
             lt: nextMonth
@@ -49,6 +51,7 @@ export async function GET(request: NextRequest) {
         _sum: { valor: true },
         _count: true,
         where: {
+          ...escopoDespesa(authResult),
           dataDespesa: {
             gte: previousMonth,
             lt: currentMonth
@@ -59,6 +62,7 @@ export async function GET(request: NextRequest) {
       // Relatórios ativos (em andamento)
       prisma.relatorio.count({
         where: {
+          ...escopoRelatorio(authResult),
           status: 'em_andamento'
         }
       }),
@@ -68,6 +72,7 @@ export async function GET(request: NextRequest) {
         _sum: { valor: true },
         _count: true,
         where: {
+          ...escopoDespesa(authResult),
           reembolsavel: true,
           reembolsada: false
         }
@@ -80,6 +85,7 @@ export async function GET(request: NextRequest) {
         },
         where: {
           despesa: {
+            ...escopoDespesa(authResult),
             dataDespesa: {
               gte: currentMonth,
               lt: nextMonth
@@ -90,6 +96,7 @@ export async function GET(request: NextRequest) {
 
       // Últimas 5 despesas
       prisma.despesa.findMany({
+        where: escopoDespesa(authResult),
         take: 5,
         orderBy: {
           dataDespesa: 'desc'
@@ -112,6 +119,7 @@ export async function GET(request: NextRequest) {
 
       // Últimos 5 relatórios
       prisma.relatorio.findMany({
+        where: escopoRelatorio(authResult),
         take: 5,
         orderBy: {
           updatedAt: 'desc'
@@ -123,6 +131,7 @@ export async function GET(request: NextRequest) {
     const despesasQuilometragem = await prisma.despesaQuilometragem.findMany({
       where: {
         despesa: {
+          ...escopoDespesa(authResult),
           dataDespesa: {
             gte: currentMonth,
             lt: nextMonth

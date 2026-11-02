@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/db'
+import { escopoRelatorio } from '@/lib/escopo'
 
 export async function POST(
   request: NextRequest,
@@ -26,8 +25,8 @@ export async function POST(
     }
 
     // Verificar se o relatório existe
-    const relatorio = await prisma.relatorio.findUnique({
-      where: { id: relatorioId }
+    const relatorio = await prisma.relatorio.findFirst({
+      where: { id: relatorioId, ...escopoRelatorio(authResult) }
     })
 
     if (!relatorio) {

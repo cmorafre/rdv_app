@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { AdiantamentoCalculator } from '@/lib/adiantamentos'
+import { escopoDespesa, escopoRelatorio } from '@/lib/escopo'
 
 const DespesaCreateSchema = z.object({
   relatorioId: z.number().int().positive("Relatório é obrigatório"),
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
 
     // Construir where clause
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const whereClause: Record<string, any> = {}
+    const whereClause: Record<string, any> = { ...escopoDespesa(authResult) }
 
     if (busca) {
       whereClause.OR = [
@@ -167,8 +168,8 @@ export async function POST(request: NextRequest) {
     const validatedData = DespesaCreateSchema.parse(body)
 
     // Verificar se o relatório existe
-    const relatorio = await prisma.relatorio.findUnique({
-      where: { id: validatedData.relatorioId }
+    const relatorio = await prisma.relatorio.findFirst({
+      where: { id: validatedData.relatorioId, ...escopoRelatorio(authResult) }
     })
 
     if (!relatorio) {
@@ -202,9 +203,13 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      // Verificar se o veículo existe
-      const veiculo = await prisma.veiculo.findUnique({
-        where: { id: validatedData.veiculoId }
+      // O veículo precisa ser do dono do relatório
+      const veiculo = await prisma.veiculo.findFirst({
+        where: {
+          id: validatedData.veiculoId,
+          contaId: relatorio.contaId,
+          usuarioId: relatorio.usuarioId
+        }
       })
 
       if (!veiculo) {

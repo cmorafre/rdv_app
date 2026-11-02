@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { AdiantamentoCalculator } from '@/lib/adiantamentos'
+import { escopoRelatorio, novoDono } from '@/lib/escopo'
 
 const RelatorioCreateSchema = z.object({
   titulo: z.string().min(1, "Título é obrigatório"),
@@ -25,8 +26,6 @@ export async function GET(request: NextRequest) {
       return authResult
     }
     
-    const _user = authResult
-
     const { searchParams } = new URL(request.url)
     
     // Paginação
@@ -43,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     // Construir where clause
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const whereClause: Record<string, any> = {}
+    const whereClause: Record<string, any> = { ...escopoRelatorio(authResult) }
 
     if (busca) {
       whereClause.OR = [
@@ -133,8 +132,6 @@ export async function POST(request: NextRequest) {
       return authResult
     }
     
-    const _user = authResult
-
     const body = await request.json()
     const validatedData = RelatorioCreateSchema.parse(body)
 
@@ -154,6 +151,7 @@ export async function POST(request: NextRequest) {
     const relatorio = await prisma.relatorio.create({
       data: {
         ...validatedData,
+        ...novoDono(authResult),
         saldoRestante,
         valorReembolso,
         statusReembolso

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { escopoVeiculo, novoDono } from '@/lib/escopo'
 
 const VeiculoCreateSchema = z.object({
   tipo: z.string().min(1, "Tipo é obrigatório"),
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     // Construir where clause
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const whereClause: Record<string, any> = {}
+    const whereClause: Record<string, any> = { ...escopoVeiculo(authResult) }
 
     if (!includeInactive) {
       whereClause.ativo = true
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
     }
 
     const veiculo = await prisma.veiculo.create({
-      data: validatedData
+      data: { ...validatedData, ...novoDono(authResult) }
     })
 
     return NextResponse.json(veiculo, { status: 201 })

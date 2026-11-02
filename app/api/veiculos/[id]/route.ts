@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { escopoVeiculo } from '@/lib/escopo'
 
 const VeiculoUpdateSchema = z.object({
   tipo: z.string().min(1, "Tipo é obrigatório").optional(),
@@ -36,8 +37,8 @@ export async function GET(
       )
     }
 
-    const veiculo = await prisma.veiculo.findUnique({
-      where: { id },
+    const veiculo = await prisma.veiculo.findFirst({
+      where: { id, ...escopoVeiculo(authResult) },
       include: {
         despesasQuilometragem: {
           include: {
@@ -103,8 +104,8 @@ export async function PUT(
     const body = await request.json()
     const validatedData = VeiculoUpdateSchema.parse(body)
 
-    const existingVeiculo = await prisma.veiculo.findUnique({
-      where: { id }
+    const existingVeiculo = await prisma.veiculo.findFirst({
+      where: { id, ...escopoVeiculo(authResult) }
     })
 
     if (!existingVeiculo) {
@@ -171,8 +172,8 @@ export async function DELETE(
       )
     }
 
-    const existingVeiculo = await prisma.veiculo.findUnique({
-      where: { id },
+    const existingVeiculo = await prisma.veiculo.findFirst({
+      where: { id, ...escopoVeiculo(authResult) },
       include: {
         despesasQuilometragem: true
       }

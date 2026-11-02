@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { requireAuth } from "@/lib/auth"
 import { prisma } from "@/lib/db/prisma"
+import { escopoRelatorio } from "@/lib/escopo"
 import fs from 'fs/promises'
 import path from 'path'
 
@@ -26,9 +27,15 @@ export async function GET(
     }
 
     // Buscar o relatório com todas as suas despesas
-    const relatorio = await prisma.relatorio.findUnique({
-      where: { id },
+    const relatorio = await prisma.relatorio.findFirst({
+      where: { id, ...escopoRelatorio(authResult) },
       include: {
+        usuario: {
+          select: {
+            nome: true,
+            email: true
+          }
+        },
         despesas: {
           include: {
             categoria: true,
@@ -46,21 +53,15 @@ export async function GET(
       }
     })
 
-    // Buscar dados do usuário atual (do authResult)
-    const usuario = await prisma.usuario.findUnique({
-      where: { id: authResult.userId },
-      select: {
-        nome: true,
-        email: true
-      }
-    })
-
-    if (!relatorio || !usuario) {
+    if (!relatorio) {
       return NextResponse.json(
-        { error: "Relatório ou usuário não encontrado" },
+        { error: "Relatório não encontrado" },
         { status: 404 }
       )
     }
+
+    // O PDF mostra o dono do relatório (o gestor pode gerar o de outra pessoa)
+    const usuario = relatorio.usuario ?? { nome: authResult.nome, email: authResult.email }
 
     // Carregar imagens dos comprovantes em base64
     const despesasComImagens = await Promise.all(

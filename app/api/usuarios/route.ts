@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, apenasGestor } from '@/lib/auth'
+import { escopoUsuario } from '@/lib/escopo'
 import { prisma } from '@/lib/db'
 
 const UsuarioCreateSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório").max(255),
   email: z.string().email("E-mail inválido"),
   senha: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  perfil: z.enum(['gestor', 'usuario']).optional(),
 })
 
 export async function GET(request: NextRequest) {
@@ -30,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     // Construir where clause
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const whereClause: Record<string, any> = {}
+    const whereClause: Record<string, any> = { ...escopoUsuario(authResult) }
 
     if (busca) {
       whereClause.OR = [
@@ -49,6 +51,8 @@ export async function GET(request: NextRequest) {
         id: true,
         nome: true,
         email: true,
+        perfil: true,
+        ativo: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -83,6 +87,9 @@ export async function POST(request: NextRequest) {
       return authResult
     }
 
+    const negado = apenasGestor(authResult)
+    if (negado) return negado
+
     const body = await request.json()
     const validatedData = UsuarioCreateSchema.parse(body)
 
@@ -107,11 +114,15 @@ export async function POST(request: NextRequest) {
         nome: validatedData.nome,
         email: validatedData.email,
         senha: hashedPassword,
+        contaId: authResult.contaId,
+        perfil: validatedData.perfil ?? 'usuario',
       },
       select: {
         id: true,
         nome: true,
         email: true,
+        perfil: true,
+        ativo: true,
         createdAt: true,
         updatedAt: true,
       }

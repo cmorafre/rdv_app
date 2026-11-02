@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { escopoDespesa } from '@/lib/escopo'
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +23,7 @@ export async function GET(request: NextRequest) {
       },
       _count: true,
       where: {
+          ...escopoDespesa(authResult),
         dataDespesa: {
           gte: sixMonthsAgo
         }
@@ -66,6 +68,7 @@ export async function GET(request: NextRequest) {
           _sum: { valor: true },
           _count: true,
           where: {
+          ...escopoDespesa(authResult),
             dataDespesa: {
               gte: monthDate,
               lt: nextMonth
@@ -94,6 +97,7 @@ export async function GET(request: NextRequest) {
           _count: true,
           where: {
             despesa: {
+              ...escopoDespesa(authResult),
               dataDespesa: {
                 gte: monthDate,
                 lt: nextMonth
@@ -119,6 +123,7 @@ export async function GET(request: NextRequest) {
         const despesasQuilometragem = await prisma.despesaQuilometragem.findMany({
           where: {
             despesa: {
+              ...escopoDespesa(authResult),
               dataDespesa: {
                 gte: item.date,
                 lt: nextMonth

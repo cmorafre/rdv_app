@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { put, del } from '@vercel/blob'
 import { prisma } from '@/lib/db'
+import { escopoDespesa } from '@/lib/escopo'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = [
@@ -54,9 +55,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar se a despesa existe
-    const despesa = await prisma.despesa.findUnique({
-      where: { id: parseInt(despesaId) }
+    // Verificar se a despesa existe (e é visível para a sessão)
+    const despesa = await prisma.despesa.findFirst({
+      where: { id: parseInt(despesaId) || 0, ...escopoDespesa(authResult) }
     })
 
     if (!despesa) {
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     // Gerar nome único para o arquivo
     const fileExtension = file.name.split('.').pop()
-    const fileName = `comprovantes/${despesaId}/${Date.now()}.${fileExtension}`
+    const fileName = `comprovantes/${despesa.id}/${Date.now()}.${fileExtension}`
 
     // Upload para Vercel Blob
     const blob = await put(fileName, file, {
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
     // Salvar no banco de dados
     const comprovante = await prisma.comprovante.create({
       data: {
-        despesaId: parseInt(despesaId),
+        despesaId: despesa.id,
         nomeArquivo: fileName,
         nomeOriginal: file.name,
         tamanho: file.size,
@@ -125,8 +126,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Buscar comprovante
-    const comprovante = await prisma.comprovante.findUnique({
-      where: { id: parseInt(comprovanteId) }
+    const comprovante = await prisma.comprovante.findFirst({
+      where: { id: parseInt(comprovanteId) || 0, despesa: escopoDespesa(authResult) }
     })
 
     if (!comprovante) {
@@ -146,7 +147,7 @@ export async function DELETE(request: NextRequest) {
 
     // Deletar do banco de dados
     await prisma.comprovante.delete({
-      where: { id: parseInt(comprovanteId) }
+      where: { id: comprovante.id }
     })
 
     return NextResponse.json({ success: true })

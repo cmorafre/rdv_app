@@ -77,14 +77,14 @@ export async function destroySession() {
   cookieStore.set('session', '', { expires: new Date(0) })
 }
 
-// Autenticar usuário
+// Autenticar usuário (inativo ou sem conta não entra)
 export async function authenticate(email: string, password: string): Promise<SessionPayload | null> {
   try {
     const user = await prisma.usuario.findUnique({
       where: { email }
     })
 
-    if (!user) {
+    if (!user || !user.ativo || !user.contaId) {
       return null
     }
 
@@ -116,8 +116,20 @@ function getRequestToken(request: NextRequest): string | undefined {
   return request.cookies.get('session')?.value
 }
 
+export type Perfil = 'gestor' | 'usuario'
+
+// Sessão de uma requisição autenticada. Conta, perfil e status vêm do banco a cada
+// requisição (não do token): desativar um usuário ou trocar o perfil vale na hora
+export interface Sessao {
+  userId: number
+  email: string
+  nome: string
+  contaId: number
+  perfil: Perfil
+}
+
 // Middleware para verificar autenticação em API routes
-export async function requireAuth(request: NextRequest): Promise<SessionPayload | NextResponse> {
+export async function requireAuth(request: NextRequest): Promise<Sessao | NextResponse> {
   const token = getRequestToken(request)
 
   if (!token) {
@@ -130,5 +142,26 @@ export async function requireAuth(request: NextRequest): Promise<SessionPayload 
     return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
   }
 
-  return session
+  const usuario = await prisma.usuario.findUnique({
+    where: { id: session.userId },
+    select: { id: true, email: true, nome: true, contaId: true, perfil: true, ativo: true }
+  })
+
+  if (!usuario || !usuario.ativo || !usuario.contaId) {
+    return NextResponse.json({ error: 'Usuário inativo ou sem conta' }, { status: 401 })
+  }
+
+  return {
+    userId: usuario.id,
+    email: usuario.email,
+    nome: usuario.nome,
+    contaId: usuario.contaId,
+    perfil: usuario.perfil === 'gestor' ? 'gestor' : 'usuario'
+  }
+}
+
+// Resposta padrão para ações que só o gestor pode fazer
+export function apenasGestor(sessao: Sessao): NextResponse | null {
+  if (sessao.perfil === 'gestor') return null
+  return NextResponse.json({ error: 'Apenas o gestor pode fazer isso' }, { status: 403 })
 }

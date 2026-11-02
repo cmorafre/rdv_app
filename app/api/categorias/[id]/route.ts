@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, apenasGestor } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
 const CategoriaUpdateSchema = z.object({
@@ -62,6 +62,9 @@ export async function PUT(
     if (authResult instanceof NextResponse) {
       return authResult
     }
+
+    const negado = apenasGestor(authResult)
+    if (negado) return negado
 
     const { id: idParam } = await params
     const id = parseInt(idParam)
@@ -140,6 +143,9 @@ export async function DELETE(
     if (authResult instanceof NextResponse) {
       return authResult
     }
+
+    const negado = apenasGestor(authResult)
+    if (negado) return negado
 
     const { id: idParam } = await params
     const id = parseInt(idParam)

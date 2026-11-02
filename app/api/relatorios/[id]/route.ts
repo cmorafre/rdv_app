@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { AdiantamentoCalculator } from '@/lib/adiantamentos'
+import { escopoRelatorio } from '@/lib/escopo'
 
 const RelatorioUpdateSchema = z.object({
   titulo: z.string().min(1, "Título é obrigatório").optional(),
@@ -37,8 +38,8 @@ export async function GET(
       )
     }
 
-    const relatorio = await prisma.relatorio.findUnique({
-      where: { id },
+    const relatorio = await prisma.relatorio.findFirst({
+      where: { id, ...escopoRelatorio(authResult) },
       include: {
         despesas: {
           include: {
@@ -128,8 +129,8 @@ export async function PUT(
       )
     }
 
-    const existingRelatorio = await prisma.relatorio.findUnique({
-      where: { id }
+    const existingRelatorio = await prisma.relatorio.findFirst({
+      where: { id, ...escopoRelatorio(authResult) }
     })
 
     if (!existingRelatorio) {
@@ -200,8 +201,8 @@ export async function DELETE(
       )
     }
 
-    const existingRelatorio = await prisma.relatorio.findUnique({
-      where: { id },
+    const existingRelatorio = await prisma.relatorio.findFirst({
+      where: { id, ...escopoRelatorio(authResult) },
       include: {
         despesas: true
       }

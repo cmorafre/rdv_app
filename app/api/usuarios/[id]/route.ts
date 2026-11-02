@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, apenasGestor } from '@/lib/auth'
+import { escopoUsuario } from '@/lib/escopo'
 import { prisma } from '@/lib/db'
 
 const UsuarioUpdateSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório").max(255).optional(),
   email: z.string().email("E-mail inválido").optional(),
   senha: z.string().min(6, "Senha deve ter pelo menos 6 caracteres").optional(),
+  perfil: z.enum(['gestor', 'usuario']).optional(),
+  ativo: z.boolean().optional(),
 })
 
 export async function GET(
@@ -31,12 +34,14 @@ export async function GET(
       )
     }
 
-    const usuario = await prisma.usuario.findUnique({
-      where: { id },
+    const usuario = await prisma.usuario.findFirst({
+      where: { id, ...escopoUsuario(authResult) },
       select: {
         id: true,
         nome: true,
         email: true,
+        perfil: true,
+        ativo: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -84,8 +89,8 @@ export async function PUT(
     const validatedData = UsuarioUpdateSchema.parse(body)
 
     // Verificar se o usuário existe
-    const existingUser = await prisma.usuario.findUnique({
-      where: { id }
+    const existingUser = await prisma.usuario.findFirst({
+      where: { id, ...escopoUsuario(authResult) }
     })
 
     if (!existingUser) {
@@ -93,6 +98,26 @@ export async function PUT(
         { error: "Usuário não encontrado" },
         { status: 404 }
       )
+    }
+
+    // Cada um edita os próprios dados; o gestor edita qualquer usuário da conta
+    const proprio = id === authResult.userId
+    if (!proprio) {
+      const negado = apenasGestor(authResult)
+      if (negado) return negado
+    }
+
+    // Perfil e status: só o gestor, e nunca em si mesmo (a conta não pode ficar sem gestor)
+    if (validatedData.perfil !== undefined || validatedData.ativo !== undefined) {
+      const negado = apenasGestor(authResult)
+      if (negado) return negado
+
+      if (proprio) {
+        return NextResponse.json(
+          { error: "Você não pode alterar o próprio perfil ou status" },
+          { status: 400 }
+        )
+      }
     }
 
     // Se está mudando o email, verificar se não existe outro usuário com o mesmo
@@ -115,6 +140,8 @@ export async function PUT(
     
     if (validatedData.nome) updateData.nome = validatedData.nome
     if (validatedData.email) updateData.email = validatedData.email
+    if (validatedData.perfil !== undefined) updateData.perfil = validatedData.perfil
+    if (validatedData.ativo !== undefined) updateData.ativo = validatedData.ativo
     
     // Se senha foi fornecida, fazer hash
     if (validatedData.senha) {
@@ -128,6 +155,8 @@ export async function PUT(
         id: true,
         nome: true,
         email: true,
+        perfil: true,
+        ativo: true,
         createdAt: true,
         updatedAt: true,
       }
@@ -171,9 +200,13 @@ export async function DELETE(
       )
     }
 
+    const negado = apenasGestor(authResult)
+    if (negado) return negado
+
     // Verificar se o usuário existe
-    const existingUser = await prisma.usuario.findUnique({
-      where: { id }
+    const existingUser = await prisma.usuario.findFirst({
+      where: { id, ...escopoUsuario(authResult) },
+      include: { _count: { select: { relatorios: true, veiculos: true, relatoriosAprovados: true } } }
     })
 
     if (!existingUser) {
@@ -183,8 +216,20 @@ export async function DELETE(
       )
     }
 
-    // TODO: Verificar se usuário não possui relatórios/despesas associadas
-    // Por ora, permitir exclusão
+    if (id === authResult.userId) {
+      return NextResponse.json(
+        { error: "Você não pode excluir o próprio usuário" },
+        { status: 400 }
+      )
+    }
+
+    const { relatorios, veiculos, relatoriosAprovados } = existingUser._count
+    if (relatorios + veiculos + relatoriosAprovados > 0) {
+      return NextResponse.json(
+        { error: "Este usuário tem relatórios ou veículos. Desative-o em vez de excluir." },
+        { status: 400 }
+      )
+    }
 
     await prisma.usuario.delete({
       where: { id }

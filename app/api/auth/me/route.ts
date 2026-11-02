@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
+import { prisma } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,11 +10,18 @@ export async function GET(request: NextRequest) {
       return session
     }
     
+    const conta = await prisma.conta.findUnique({
+      where: { id: session.contaId },
+      select: { id: true, nome: true, tipo: true }
+    })
+
     return NextResponse.json({
       user: {
         id: session.userId,
         email: session.email,
-        nome: session.nome
+        nome: session.nome,
+        perfil: session.perfil,
+        conta
       }
     })
     
