@@ -9,6 +9,11 @@ async function main() {
   // Criar usuário de teste
   const hashedPassword = await bcrypt.hash('123456', 12)
   
+  // Conta de teste (só para bancos de desenvolvimento)
+  const conta =
+    (await prisma.conta.findFirst({ where: { nome: 'Conta de teste' } })) ??
+    (await prisma.conta.create({ data: { nome: 'Conta de teste', tipo: 'individual' } }))
+
   const testUser = await prisma.usuario.upsert({
     where: { email: 'teste@rdv.com' },
     update: {},
@@ -16,6 +21,8 @@ async function main() {
       nome: 'Usuário Teste',
       email: 'teste@rdv.com',
       senha: hashedPassword,
+      contaId: conta.id,
+      perfil: 'gestor',
     },
   })
 
@@ -96,7 +103,7 @@ async function main() {
   if (existingReports === 0) {
     for (const relatorio of relatorios) {
       await prisma.relatorio.create({
-        data: relatorio,
+        data: { ...relatorio, contaId: testUser.contaId, usuarioId: testUser.id },
       })
     }
     console.log('✅ Relatórios de exemplo criados')
@@ -144,7 +151,7 @@ async function main() {
   if (existingVehicles === 0) {
     for (const veiculo of veiculos) {
       await prisma.veiculo.create({
-        data: veiculo
+        data: { ...veiculo, contaId: testUser.contaId, usuarioId: testUser.id }
       })
     }
     console.log('✅ Veículos de exemplo criados')
