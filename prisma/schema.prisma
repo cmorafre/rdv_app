@@ -10,51 +10,88 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Usuários (para autenticação simples)
+// Contas: um usuário individual ou uma empresa. Nenhum dado cruza de uma conta para outra
+model Conta {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  tipo      String   @default("individual") // individual | empresa
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  usuarios   Usuario[]
+  relatorios Relatorio[]
+  veiculos   Veiculo[]
+
+  @@map("contas")
+}
+
+// Usuários
 model Usuario {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   senha     String
   nome      String
+  // Opcional até a migração B; o código novo sempre preenche
+  contaId   Int?     @map("conta_id")
+  perfil    String   @default("usuario") // gestor | usuario
+  ativo     Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  conta               Conta?      @relation(fields: [contaId], references: [id])
+  relatorios          Relatorio[] @relation("RelatorioDono")
+  relatoriosAprovados Relatorio[] @relation("RelatorioAprovador")
+  veiculos            Veiculo[]
+
+  @@index([contaId])
   @@map("usuarios")
 }
 
 // Relatórios
 model Relatorio {
-  id              Int      @id @default(autoincrement())
-  titulo          String
-  dataInicio      DateTime @map("data_inicio")
-  dataFim         DateTime @map("data_fim")
-  destino         String?
-  proposito       String?
-  status          String   @default("em_andamento")
-  cliente         String?
-  observacoes     String?
-  valorTotal      Decimal  @default(0) @map("valor_total")
-  adiantamento    Decimal  @default(0)
-  saldoRestante   Decimal  @default(0) @map("saldo_restante")
-  valorReembolso  Decimal? @map("valor_reembolso")
-  statusReembolso String   @default("pendente") @map("status_reembolso")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id               Int       @id @default(autoincrement())
+  titulo           String
+  dataInicio       DateTime  @map("data_inicio")
+  dataFim          DateTime  @map("data_fim")
+  destino          String?
+  proposito        String?
+  status           String    @default("em_andamento")
+  cliente          String?
+  observacoes      String?
+  valorTotal       Decimal   @default(0) @map("valor_total")
+  adiantamento     Decimal   @default(0)
+  saldoRestante    Decimal   @default(0) @map("saldo_restante")
+  valorReembolso   Decimal?  @map("valor_reembolso")
+  statusReembolso  String    @default("pendente") @map("status_reembolso")
+  // Dono (opcionais até a migração B)
+  contaId          Int?      @map("conta_id")
+  usuarioId        Int?      @map("usuario_id")
+  // Aprovação: guarda só a última
+  enviadoEm        DateTime? @map("enviado_em")
+  aprovadoEm       DateTime? @map("aprovado_em")
+  aprovadoPorId    Int?      @map("aprovado_por_id")
+  motivoReprovacao String?   @map("motivo_reprovacao")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   // Relacionamentos
-  despesas        Despesa[]
+  despesas    Despesa[]
+  conta       Conta?    @relation(fields: [contaId], references: [id])
+  usuario     Usuario?  @relation("RelatorioDono", fields: [usuarioId], references: [id])
+  aprovadoPor Usuario?  @relation("RelatorioAprovador", fields: [aprovadoPorId], references: [id])
 
+  @@index([contaId, usuarioId])
   @@map("relatorios")
 }
 
 // Categorias
 model Categoria {
-  id       Int      @id @default(autoincrement())
-  nome     String   @unique
-  icone    String?
-  cor      String?
-  ativa    Boolean  @default(true)
-  
+  id    Int     @id @default(autoincrement())
+  nome  String  @unique
+  icone String?
+  cor   String?
+  ativa Boolean @default(true)
+
   // Relacionamentos
   despesas Despesa[]
 
@@ -63,45 +100,51 @@ model Categoria {
 
 // Veículos
 model Veiculo {
-  id              Int      @id @default(autoincrement())
-  tipo            String
-  marca           String?
-  modelo          String?
-  categoria       String?
-  combustivel     String?
-  identificacao   String   @unique
-  potencia        Int?
-  valorPorKm      Decimal  @map("valor_por_km")
-  ativo           Boolean  @default(true)
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
-  
+  id            Int      @id @default(autoincrement())
+  tipo          String
+  marca         String?
+  modelo        String?
+  categoria     String?
+  combustivel   String?
+  identificacao String   @unique
+  potencia      Int?
+  valorPorKm    Decimal  @map("valor_por_km")
+  ativo         Boolean  @default(true)
+  // Dono (opcionais até a migração B)
+  contaId       Int?     @map("conta_id")
+  usuarioId     Int?     @map("usuario_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
   // Relacionamentos
   despesasQuilometragem DespesaQuilometragem[]
+  conta                 Conta?                 @relation(fields: [contaId], references: [id])
+  usuario               Usuario?               @relation(fields: [usuarioId], references: [id])
 
+  @@index([contaId, usuarioId])
   @@map("veiculos")
 }
 
 // Despesas
 model Despesa {
-  id               Int      @id @default(autoincrement())
-  relatorioId      Int      @map("relatorio_id")
-  categoriaId      Int      @map("categoria_id")
-  dataDespesa      DateTime @map("data_despesa")
-  descricao        String
-  fornecedor       String?
-  valor            Decimal
-  observacoes      String?
-  reembolsavel     Boolean  @default(true)
-  reembolsada      Boolean  @default(false)
-  clienteACobrar   Boolean  @default(true) @map("cliente_a_cobrar")
-  createdAt        DateTime @default(now()) @map("created_at")
-  
+  id             Int      @id @default(autoincrement())
+  relatorioId    Int      @map("relatorio_id")
+  categoriaId    Int      @map("categoria_id")
+  dataDespesa    DateTime @map("data_despesa")
+  descricao      String
+  fornecedor     String?
+  valor          Decimal
+  observacoes    String?
+  reembolsavel   Boolean  @default(true)
+  reembolsada    Boolean  @default(false)
+  clienteACobrar Boolean  @default(true) @map("cliente_a_cobrar")
+  createdAt      DateTime @default(now()) @map("created_at")
+
   // Relacionamentos
-  relatorio                Relatorio              @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
-  categoria                Categoria              @relation(fields: [categoriaId], references: [id])
-  despesaQuilometragem     DespesaQuilometragem?
-  comprovantes             Comprovante[]
+  relatorio            Relatorio             @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
+  categoria            Categoria             @relation(fields: [categoriaId], references: [id])
+  despesaQuilometragem DespesaQuilometragem?
+  comprovantes         Comprovante[]
 
   @@map("despesas")
 }
@@ -116,27 +159,27 @@ model DespesaQuilometragem {
   distanciaKm   Decimal @map("distancia_km")
   valorPorKm    Decimal @map("valor_por_km")
   percursoDados String? @map("percurso_dados")
-  
+
   // Relacionamentos
-  despesa  Despesa @relation(fields: [despesaId], references: [id], onDelete: Cascade)
-  veiculo  Veiculo @relation(fields: [veiculoId], references: [id])
+  despesa Despesa @relation(fields: [despesaId], references: [id], onDelete: Cascade)
+  veiculo Veiculo @relation(fields: [veiculoId], references: [id])
 
   @@map("despesas_quilometragem")
 }
 
 // Comprovantes de Despesas
 model Comprovante {
-  id          Int      @id @default(autoincrement())
-  despesaId   Int      @map("despesa_id")
-  nomeArquivo String   @map("nome_arquivo")
-  nomeOriginal String  @map("nome_original")
-  tamanho     Int
-  tipoMime    String   @map("tipo_mime")
-  url         String
-  createdAt   DateTime @default(now()) @map("created_at")
-  
+  id           Int      @id @default(autoincrement())
+  despesaId    Int      @map("despesa_id")
+  nomeArquivo  String   @map("nome_arquivo")
+  nomeOriginal String   @map("nome_original")
+  tamanho      Int
+  tipoMime     String   @map("tipo_mime")
+  url          String
+  createdAt    DateTime @default(now()) @map("created_at")
+
   // Relacionamentos
-  despesa     Despesa  @relation(fields: [despesaId], references: [id], onDelete: Cascade)
+  despesa Despesa @relation(fields: [despesaId], references: [id], onDelete: Cascade)
 
   @@map("comprovantes")
 }

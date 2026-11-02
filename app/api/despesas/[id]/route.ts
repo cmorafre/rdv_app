@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { AdiantamentoCalculator } from '@/lib/adiantamentos'
+import { escopoDespesa } from '@/lib/escopo'
 
 const DespesaUpdateSchema = z.object({
   categoriaId: z.number().int().positive("Categoria é obrigatória").optional(),
@@ -79,8 +80,8 @@ export async function GET(
       )
     }
 
-    const despesa = await prisma.despesa.findUnique({
-      where: { id },
+    const despesa = await prisma.despesa.findFirst({
+      where: { id, ...escopoDespesa(authResult) },
       include: {
         categoria: true,
         relatorio: {
@@ -139,9 +140,10 @@ export async function PUT(
     const body = await request.json()
     const validatedData = DespesaUpdateSchema.parse(body)
 
-    // Verificar se a despesa existe
-    const existingDespesa = await prisma.despesa.findUnique({
-      where: { id }
+    // Verificar se a despesa existe (e é visível para a sessão)
+    const existingDespesa = await prisma.despesa.findFirst({
+      where: { id, ...escopoDespesa(authResult) },
+      include: { relatorio: { select: { contaId: true, usuarioId: true } } }
     })
 
     if (!existingDespesa) {
@@ -187,9 +189,13 @@ export async function PUT(
           )
         }
 
-        // Verificar se o veículo existe
-        const veiculo = await prisma.veiculo.findUnique({
-          where: { id: validatedData.veiculoId }
+        // O veículo precisa ser do dono do relatório
+        const veiculo = await prisma.veiculo.findFirst({
+          where: {
+            id: validatedData.veiculoId,
+            contaId: existingDespesa.relatorio.contaId,
+            usuarioId: existingDespesa.relatorio.usuarioId
+          }
         })
 
         if (!veiculo) {
@@ -316,9 +322,10 @@ export async function DELETE(
       )
     }
 
-    // Verificar se a despesa existe
-    const existingDespesa = await prisma.despesa.findUnique({
-      where: { id }
+    // Verificar se a despesa existe (e é visível para a sessão)
+    const existingDespesa = await prisma.despesa.findFirst({
+      where: { id, ...escopoDespesa(authResult) },
+      include: { relatorio: { select: { contaId: true, usuarioId: true } } }
     })
 
     if (!existingDespesa) {

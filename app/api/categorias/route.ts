@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireAuth } from '@/lib/auth'
+import { requireAuth, apenasGestor } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
 const CategoriaCreateSchema = z.object({
@@ -45,6 +45,9 @@ export async function POST(request: NextRequest) {
     if (authResult instanceof NextResponse) {
       return authResult
     }
+
+    const negado = apenasGestor(authResult)
+    if (negado) return negado
 
     const body = await request.json()
     const validatedData = CategoriaCreateSchema.parse(body)
