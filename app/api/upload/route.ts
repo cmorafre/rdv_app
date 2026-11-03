@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth'
 import { put, del } from '@vercel/blob'
 import { prisma } from '@/lib/db'
 import { escopoDespesa } from '@/lib/escopo'
+import { relatorioEditavel, MSG_NAO_EDITAVEL } from '@/lib/fluxo-relatorio'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = [
@@ -57,7 +58,8 @@ export async function POST(request: NextRequest) {
 
     // Verificar se a despesa existe (e é visível para a sessão)
     const despesa = await prisma.despesa.findFirst({
-      where: { id: parseInt(despesaId) || 0, ...escopoDespesa(authResult) }
+      where: { id: parseInt(despesaId) || 0, ...escopoDespesa(authResult) },
+      include: { relatorio: { select: { status: true } } }
     })
 
     if (!despesa) {
@@ -65,6 +67,10 @@ export async function POST(request: NextRequest) {
         { error: 'Despesa não encontrada' },
         { status: 404 }
       )
+    }
+
+    if (!relatorioEditavel(despesa.relatorio.status)) {
+      return NextResponse.json({ error: MSG_NAO_EDITAVEL }, { status: 409 })
     }
 
     // Gerar nome único para o arquivo
@@ -127,7 +133,8 @@ export async function DELETE(request: NextRequest) {
 
     // Buscar comprovante
     const comprovante = await prisma.comprovante.findFirst({
-      where: { id: parseInt(comprovanteId) || 0, despesa: escopoDespesa(authResult) }
+      where: { id: parseInt(comprovanteId) || 0, despesa: escopoDespesa(authResult) },
+      include: { despesa: { select: { relatorio: { select: { status: true } } } } }
     })
 
     if (!comprovante) {
@@ -135,6 +142,10 @@ export async function DELETE(request: NextRequest) {
         { error: 'Comprovante não encontrado' },
         { status: 404 }
       )
+    }
+
+    if (!relatorioEditavel(comprovante.despesa.relatorio.status)) {
+      return NextResponse.json({ error: MSG_NAO_EDITAVEL }, { status: 409 })
     }
 
     // Deletar arquivo do Vercel Blob

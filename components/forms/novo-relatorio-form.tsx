@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CurrencyInput } from "@/components/ui/currency-input"
 import {
   Form,
@@ -28,7 +27,6 @@ const RelatorioFormSchema = z.object({
   dataFim: z.string().min(1, "Data de fim é obrigatória"),
   destino: z.string().optional(),
   proposito: z.string().optional(),
-  status: z.enum(["em_andamento", "reembolsado"]).default("em_andamento"),
   cliente: z.string().optional(),
   observacoes: z.string().optional(),
   adiantamento: z.string().optional(),
@@ -57,7 +55,6 @@ export function NovoRelatorioForm() {
       dataFim: "",
       destino: "",
       proposito: "",
-      status: "em_andamento",
       cliente: "",
       observacoes: "",
       adiantamento: "",
@@ -249,27 +246,6 @@ export function NovoRelatorioForm() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                      <SelectItem value="reembolsado">Reembolsado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}

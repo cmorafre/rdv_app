@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { AdiantamentoCalculator } from '@/lib/adiantamentos'
 import { escopoRelatorio } from '@/lib/escopo'
+import { acoesDoRelatorio, podeAprovarProprio, relatorioEditavel, MSG_NAO_EDITAVEL } from '@/lib/fluxo-relatorio'
 
 const RelatorioUpdateSchema = z.object({
   titulo: z.string().min(1, "Título é obrigatório").optional(),
@@ -11,7 +12,6 @@ const RelatorioUpdateSchema = z.object({
   dataFim: z.string().transform((val) => new Date(val)).optional(),
   destino: z.string().optional().nullable(),
   proposito: z.string().optional().nullable(),
-  status: z.string().optional(),
   cliente: z.string().optional().nullable(),
   observacoes: z.string().optional().nullable(),
   adiantamento: z.number().optional(),
@@ -53,7 +53,9 @@ export async function GET(
           orderBy: {
             dataDespesa: 'desc'
           }
-        }
+        },
+        usuario: { select: { id: true, nome: true } },
+        aprovadoPor: { select: { id: true, nome: true } }
       }
     })
 
@@ -75,8 +77,11 @@ export async function GET(
       )
     }
 
+    const aprovaProprio = authResult.perfil === 'gestor' && (await podeAprovarProprio(authResult))
+
     const relatorioComTotal = {
       ...relatorio,
+      acoes: acoesDoRelatorio(relatorio, authResult, aprovaProprio),
       adiantamento: relatorio.adiantamento ? Number(relatorio.adiantamento) : 0,
       valorTotal,
       totalDespesas: relatorio.despesas.length,
@@ -138,6 +143,10 @@ export async function PUT(
         { error: "Relatório não encontrado" },
         { status: 404 }
       )
+    }
+
+    if (!relatorioEditavel(existingRelatorio.status)) {
+      return NextResponse.json({ error: MSG_NAO_EDITAVEL }, { status: 409 })
     }
 
     const relatorio = await prisma.relatorio.update({
@@ -213,6 +222,10 @@ export async function DELETE(
         { error: "Relatório não encontrado" },
         { status: 404 }
       )
+    }
+
+    if (!relatorioEditavel(existingRelatorio.status)) {
+      return NextResponse.json({ error: MSG_NAO_EDITAVEL }, { status: 409 })
     }
 
     if (existingRelatorio.despesas.length > 0) {

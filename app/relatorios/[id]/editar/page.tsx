@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CurrencyInput } from "@/components/ui/currency-input"
 import {
   Form,
@@ -31,7 +30,6 @@ const RelatorioEditSchema = z.object({
   dataFim: z.string().min(1, "Data de fim é obrigatória"),
   destino: z.string().optional(),
   proposito: z.string().optional(),
-  status: z.enum(["em_andamento", "reembolsado"]),
   cliente: z.string().optional(),
   observacoes: z.string().optional(),
   adiantamento: z.string().optional(),
@@ -77,7 +75,6 @@ export default function EditarRelatorio() {
       dataFim: "",
       destino: "",
       proposito: "",
-      status: "em_andamento",
       cliente: "",
       observacoes: "",
       adiantamento: "",
@@ -102,7 +99,15 @@ export default function EditarRelatorio() {
         throw new Error("Erro ao carregar relatório")
       }
 
-      const data: Relatorio = await response.json()
+      const data: Relatorio & { acoes?: { editar: boolean } } = await response.json()
+
+      // Relatório enviado/aprovado não pode ser editado: volta para os detalhes
+      if (data.acoes && !data.acoes.editar) {
+        toast.info("Este relatório não pode ser editado no status atual")
+        router.push(`/relatorios/${id}`)
+        return
+      }
+
       setRelatorio(data)
 
       // Formatar datas para o input date
@@ -117,7 +122,6 @@ export default function EditarRelatorio() {
         dataFim: formatDateForInput(data.dataFim),
         destino: data.destino || "",
         proposito: data.proposito || "",
-        status: data.status as "em_andamento" | "reembolsado",
         cliente: data.cliente || "",
         observacoes: data.observacoes || "",
         adiantamento: data.adiantamento ? data.adiantamento.toString().replace('.', ',') : "",
@@ -373,27 +377,6 @@ export default function EditarRelatorio() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                          <SelectItem value="reembolsado">Reembolsado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}

@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { AdiantamentoCalculator } from '@/lib/adiantamentos'
 import { escopoRelatorio, novoDono } from '@/lib/escopo'
+import { acoesDoRelatorio, podeAprovarProprio } from '@/lib/fluxo-relatorio'
 
 const RelatorioCreateSchema = z.object({
   titulo: z.string().min(1, "Título é obrigatório"),
@@ -11,7 +12,6 @@ const RelatorioCreateSchema = z.object({
   dataFim: z.string().transform((val) => new Date(val)),
   destino: z.string().optional().nullable(),
   proposito: z.string().optional().nullable(),
-  status: z.string().default("em_andamento"),
   cliente: z.string().optional().nullable(),
   observacoes: z.string().optional().nullable(),
   adiantamento: z.number().min(0, "Adiantamento não pode ser negativo").max(100000, "Adiantamento não pode ser superior a R$ 100.000,00").default(0),
@@ -79,7 +79,8 @@ export async function GET(request: NextRequest) {
           include: {
             categoria: true
           }
-        }
+        },
+        usuario: { select: { id: true, nome: true } }
       },
       orderBy: {
         createdAt: 'desc'
@@ -87,6 +88,8 @@ export async function GET(request: NextRequest) {
       skip,
       take: pageSize
     })
+
+    const aprovaProprio = authResult.perfil === 'gestor' && (await podeAprovarProprio(authResult))
 
     const relatoriosComTotal = relatorios.map(relatorio => {
       const valorTotal = relatorio.despesas.reduce((total, despesa) => total + Number(despesa.valor), 0)
@@ -103,7 +106,8 @@ export async function GET(request: NextRequest) {
         saldoRestante: calculo.saldoRestante,
         valorReembolso: calculo.valorReembolso,
         statusReembolso: calculo.statusReembolso,
-        tipoReembolso: calculo.tipoReembolso
+        tipoReembolso: calculo.tipoReembolso,
+        acoes: acoesDoRelatorio(relatorio, authResult, aprovaProprio)
       }
     })
 
@@ -152,6 +156,7 @@ export async function POST(request: NextRequest) {
       data: {
         ...validatedData,
         ...novoDono(authResult),
+        status: 'em_andamento',
         saldoRestante,
         valorReembolso,
         statusReembolso

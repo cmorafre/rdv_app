@@ -49,9 +49,11 @@ interface DespesasDoRelatorioProps {
   despesas: Despesa[]
   loading?: boolean
   onUpdate?: () => void
+  // Relatório enviado/aprovado: só leitura
+  editavel?: boolean
 }
 
-export function DespesasDoRelatorio({ relatorioId, despesas, loading, onUpdate }: DespesasDoRelatorioProps) {
+export function DespesasDoRelatorio({ relatorioId, despesas, loading, onUpdate, editavel = true }: DespesasDoRelatorioProps) {
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [despesaToDelete, setDespesaToDelete] = useState<Despesa | null>(null)
 
@@ -123,12 +125,14 @@ export function DespesasDoRelatorio({ relatorioId, despesas, loading, onUpdate }
                 Nenhuma despesa cadastrada neste relatório
               </p>
             </div>
-            <Link href={`/despesas/nova?relatorio=${relatorioId}`}>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Despesa
-              </Button>
-            </Link>
+            {editavel && (
+              <Link href={`/despesas/nova?relatorio=${relatorioId}`}>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Despesa
+                </Button>
+              </Link>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -140,12 +144,14 @@ export function DespesasDoRelatorio({ relatorioId, despesas, loading, onUpdate }
             <p className="mb-4">
               Adicione sua primeira despesa para começar a organizar os gastos deste relatório.
             </p>
-            <Link href={`/despesas/nova?relatorio=${relatorioId}`}>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Primeira Despesa
-              </Button>
-            </Link>
+            {editavel && (
+              <Link href={`/despesas/nova?relatorio=${relatorioId}`}>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Primeira Despesa
+                </Button>
+              </Link>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -163,12 +169,14 @@ export function DespesasDoRelatorio({ relatorioId, despesas, loading, onUpdate }
                 Total: {formatCurrency(despesas.reduce((sum, d) => sum + d.valor, 0))}
               </p>
             </div>
-            <Link href={`/despesas/nova?relatorio=${relatorioId}`}>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Despesa
-              </Button>
-            </Link>
+            {editavel && (
+              <Link href={`/despesas/nova?relatorio=${relatorioId}`}>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nova Despesa
+                </Button>
+              </Link>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -248,19 +256,23 @@ export function DespesasDoRelatorio({ relatorioId, despesas, loading, onUpdate }
                             Visualizar
                           </DropdownMenuItem>
                         </Link>
-                        <Link href={`/despesas/${despesa.id}/editar`}>
-                          <DropdownMenuItem>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                        </Link>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => handleDeleteClick(despesa)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
+                        {editavel && (
+                          <>
+                            <Link href={`/despesas/${despesa.id}/editar`}>
+                              <DropdownMenuItem>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Editar
+                              </DropdownMenuItem>
+                            </Link>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleDeleteClick(despesa)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

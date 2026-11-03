@@ -6,7 +6,6 @@ export const relatorioSchema = z.object({
   dataFim: z.date({ message: 'Data de fim é obrigatória' }),
   destino: z.string().optional(),
   proposito: z.string().optional(),
-  status: z.enum(['em_andamento', 'reembolsado']).default('em_andamento'),
   cliente: z.string().optional(),
   observacoes: z.string().optional(),
 }).refine(

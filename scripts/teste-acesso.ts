@@ -28,6 +28,10 @@ const rotas = {
   usuarios: () => import(`${R}/usuarios/route`),
   usuario: () => import(`${R}/usuarios/[id]/route`),
   upload: () => import(`${R}/upload/route`),
+  enviar: () => import(`${R}/relatorios/[id]/enviar/route`),
+  cancelarEnvio: () => import(`${R}/relatorios/[id]/cancelar-envio/route`),
+  aprovar: () => import(`${R}/relatorios/[id]/aprovar/route`),
+  reprovar: () => import(`${R}/relatorios/[id]/reprovar/route`),
   metrics: () => import(`${R}/dashboard/metrics/route`),
   charts: () => import(`${R}/dashboard/charts/route`),
   categorias: () => import(`${R}/categorias/route`),
@@ -228,6 +232,74 @@ async function main() {
   confere('usuário comum não cria categoria → 403', (await chama('categorias', 'POST', T.uA, { body: { nome: 'Nova' } })).status === 403)
   confere('usuário comum não edita categoria → 403', (await chama('categoria', 'PUT', T.uA, { id: alim.id, body: { nome: 'x' } })).status === 403)
   confere('usuário comum não exclui categoria → 403', (await chama('categoria', 'DELETE', T.uA, { id: alim.id })).status === 403)
+
+  // ---------- Fluxo de aprovação ----------
+  console.log('Fluxo de aprovação')
+  const st = async (id: number) => (await prisma.relatorio.findUnique({ where: { id } }))!
+  await chama('relatorio', 'PUT', T.uA, { id: ruA.id, body: { status: 'reembolsado' } })
+  confere('status não muda pelo formulário', (await st(ruA.id)).status === 'em_andamento')
+  res = await chama('relatorios', 'POST', T.uA, { body: { titulo: 'Vazio', dataInicio: '2026-11-01', dataFim: '2026-11-02', status: 'aprovado' } })
+  confere('relatório novo sempre nasce em andamento', res.json.status === 'em_andamento', res.json.status)
+  res = await chama('enviar', 'POST', T.uA, { id: res.json.id })
+  confere('enviar sem despesas → 400', res.status === 400, res.json)
+  confere('gestor não envia relatório de outro → 403', (await chama('enviar', 'POST', T.gA, { id: ruA.id })).status === 403)
+  res = await chama('enviar', 'POST', T.uA, { id: ruA.id })
+  confere('dono envia → enviado', res.status === 200 && res.json.status === 'enviado' && !!res.json.enviadoEm && res.json.acoes.cancelarEnvio, res.json)
+  confere('enviar de novo → 409', (await chama('enviar', 'POST', T.uA, { id: ruA.id })).status === 409)
+  confere('editar relatório enviado → 409', (await chama('relatorio', 'PUT', T.uA, { id: ruA.id, body: { titulo: 'x' } })).status === 409)
+  confere('excluir relatório enviado → 409', (await chama('relatorio', 'DELETE', T.uA, { id: ruA.id })).status === 409)
+  confere('nova despesa em relatório enviado → 409', (await chama('despesas', 'POST', T.uA, { body: { ...base, relatorioId: ruA.id } })).status === 409)
+  confere('editar despesa de relatório enviado → 409', (await chama('despesa', 'PUT', T.uA, { id: duA.id, body: { valor: 1 } })).status === 409)
+  confere('excluir despesa de relatório enviado → 409', (await chama('despesa', 'DELETE', T.uA, { id: duA.id })).status === 409)
+  const formEnv = new FormData()
+  formEnv.append('file', new File([new Uint8Array([1])], 'a.png', { type: 'image/png' }))
+  formEnv.append('despesaId', String(duA.id))
+  confere('comprovante em relatório enviado → 409', (await chama('upload', 'POST', T.uA, { form: formEnv })).status === 409)
+  confere('usuário não aprova → 403', (await chama('aprovar', 'POST', T.uA, { id: ruA.id })).status === 403)
+  confere('gestor de outra conta não aprova → 404', (await chama('aprovar', 'POST', T.gB, { id: ruA.id })).status === 404)
+  res = await chama('relatorio', 'GET', T.gA, { id: ruA.id })
+  confere('gestor vê ações de aprovar/reprovar e o nome do dono', res.json.acoes.aprovar && res.json.acoes.reprovar && !res.json.acoes.enviar && res.json.usuario?.nome === 'Usuário A', res.json.acoes)
+  res = await chama('cancelarEnvio', 'POST', T.uA, { id: ruA.id })
+  confere('dono cancela envio → em andamento', res.status === 200 && res.json.status === 'em_andamento' && res.json.enviadoEm === null, res.json)
+  await chama('enviar', 'POST', T.uA, { id: ruA.id })
+  confere('reprovar sem motivo → 400', (await chama('reprovar', 'POST', T.gA, { id: ruA.id, body: {} })).status === 400)
+  res = await chama('reprovar', 'POST', T.gA, { id: ruA.id, body: { motivo: 'Falta o comprovante do almoço' } })
+  confere('gestor reprova com motivo', res.status === 200 && res.json.status === 'reprovado' && res.json.motivoReprovacao === 'Falta o comprovante do almoço', res.json)
+  res = await chama('relatorio', 'GET', T.uA, { id: ruA.id })
+  confere('reprovado volta a ser editável pelo dono', res.json.acoes.editar && res.json.acoes.enviar, res.json.acoes)
+  confere('dono corrige relatório reprovado → 200', (await chama('relatorio', 'PUT', T.uA, { id: ruA.id, body: { titulo: 'Rel usuário A (corrigido)' } })).status === 200)
+  res = await chama('enviar', 'POST', T.uA, { id: ruA.id })
+  confere('reenvio limpa o motivo', res.json.status === 'enviado' && res.json.motivoReprovacao === null, res.json)
+  confere('reembolsar antes de aprovar → 409', (await chama('reembolsar', 'POST', T.gA, { id: ruA.id })).status === 409)
+  res = await chama('aprovar', 'POST', T.gA, { id: ruA.id })
+  confere('gestor aprova → aprovado, com quem aprovou', res.status === 200 && res.json.status === 'aprovado' && res.json.aprovadoPorId === gA.id && !!res.json.aprovadoEm, res.json)
+  confere('aprovado não é editável → 409', (await chama('relatorio', 'PUT', T.uA, { id: ruA.id, body: { titulo: 'x' } })).status === 409)
+  confere('usuário não reembolsa → 403', (await chama('reembolsar', 'POST', T.uA, { id: ruA.id })).status === 403)
+  res = await chama('reembolsar', 'POST', T.gA, { id: ruA.id })
+  const reembolsadas = await prisma.despesa.count({ where: { relatorioId: ruA.id, reembolsada: true } })
+  const totalRuA = await prisma.despesa.count({ where: { relatorioId: ruA.id } })
+  confere('gestor reembolsa → despesas marcadas', res.json.status === 'reembolsado' && reembolsadas === totalRuA && totalRuA > 0, { status: res.json.status, reembolsadas, totalRuA })
+  confere('usuário não extorna → 403', (await chama('extornar', 'POST', T.uA, { id: ruA.id })).status === 403)
+  res = await chama('extornar', 'POST', T.gA, { id: ruA.id })
+  confere('extorno volta a aprovado e desmarca despesas', res.json.status === 'aprovado' && (await prisma.despesa.count({ where: { relatorioId: ruA.id, reembolsada: true } })) === 0, res.json.status)
+
+  // Autoaprovação: só quando não há outro gestor
+  console.log('Autoaprovação')
+  await chama('enviar', 'POST', T.gA, { id: rgA.id })
+  res = await chama('aprovar', 'POST', T.gA, { id: rgA.id })
+  confere('único gestor aprova o próprio relatório', res.status === 200 && res.json.status === 'aprovado', res.json)
+  const g2A = await u('g2a@a', 'Gestor 2 A', contaA.id, 'gestor')
+  const T_g2A = await tk(g2A)
+  const rg2 = await r('Rel 2 gestor A', gA)
+  await d(rg2.id, 5)
+  await chama('enviar', 'POST', T.gA, { id: rg2.id })
+  res = await chama('relatorio', 'GET', T.gA, { id: rg2.id })
+  confere('com outro gestor, botão de aprovar o próprio some', res.json.acoes.aprovar === false, res.json.acoes)
+  confere('com outro gestor, aprovar o próprio → 403', (await chama('aprovar', 'POST', T.gA, { id: rg2.id })).status === 403)
+  res = await chama('aprovar', 'POST', T_g2A, { id: rg2.id })
+  confere('o outro gestor aprova', res.status === 200 && res.json.aprovadoPorId === g2A.id, res.json)
+  res = await chama('relatorios', 'GET', T.gA, { query: 'status=enviado' })
+  confere('filtro de pendentes funciona', res.json.relatorios.every((x: { status: string }) => x.status === 'enviado'), res.json.total)
 
   console.log(`\n${total - falhas}/${total} ok`)
   await prisma.$disconnect()

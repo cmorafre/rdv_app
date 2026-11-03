@@ -140,6 +140,11 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Relatórios enviados esperando decisão do gestor (para o usuário: os dele que estão em análise)
+    const aguardandoAprovacao = await prisma.relatorio.count({
+      where: { ...escopoRelatorio(authResult), status: 'enviado' }
+    })
+
     const valorQuilometragem = despesasQuilometragem.reduce((acc, item) => {
       const valor = parseFloat(item.distanciaKm.toString()) * parseFloat(item.valorPorKm.toString())
       return acc + valor
@@ -168,6 +173,9 @@ export async function GET(request: NextRequest) {
       },
       relatoriosAtivos: {
         quantidade: relatoriosAtivos
+      },
+      aguardandoAprovacao: {
+        quantidade: aguardandoAprovacao
       },
       despesasPendentesReembolso: {
         valor: parseFloat(despesasPendentesReembolso._sum.valor?.toString() || '0'),

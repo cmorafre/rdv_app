@@ -31,6 +31,9 @@ export type DespesaWithRelations = Despesa & {
 // Status dos relatórios
 export const RELATORIO_STATUS = {
   EM_ANDAMENTO: 'em_andamento',
+  ENVIADO: 'enviado',
+  APROVADO: 'aprovado',
+  REPROVADO: 'reprovado',
   REEMBOLSADO: 'reembolsado'
 } as const
 

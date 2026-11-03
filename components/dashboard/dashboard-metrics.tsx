@@ -15,10 +15,10 @@ import {
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { DashboardCharts } from "./dashboard-charts"
+import { StatusRelatorioBadge } from "@/components/relatorios/status-badge"
 
 interface DashboardMetrics {
   totalDespesas: {
@@ -28,6 +28,9 @@ interface DashboardMetrics {
     variacaoQuantidade: number
   }
   relatoriosAtivos: {
+    quantidade: number
+  }
+  aguardandoAprovacao?: {
     quantidade: number
   }
   despesasPendentesReembolso: {
@@ -245,6 +248,11 @@ export function DashboardMetrics() {
             <p className="text-xs text-muted-foreground">
               Em andamento
             </p>
+            {(metrics.aguardandoAprovacao?.quantidade ?? 0) > 0 && (
+              <p className="text-xs font-medium text-amber-700 mt-1">
+                {metrics.aguardandoAprovacao!.quantidade} aguardando aprovação
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -358,9 +366,7 @@ export function DashboardMetrics() {
                         Atualizado em {formatDate(relatorio.updatedAt)}
                       </p>
                     </div>
-                    <Badge variant={relatorio.status === 'em_andamento' ? 'default' : 'secondary'}>
-                      {relatorio.status === 'em_andamento' ? 'Em Andamento' : 'Finalizado'}
-                    </Badge>
+                    <StatusRelatorioBadge status={relatorio.status} />
                   </div>
                 ))
               )}
