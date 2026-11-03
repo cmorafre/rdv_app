@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search, Filter, X, Loader2 } from "lucide-react"
+import { STATUS_RELATORIO_INFO } from "@/lib/status-relatorio"
 
 interface RelatoriosFilters {
   busca: string
@@ -138,8 +139,9 @@ export function RelatoriosFilters({ onFilterChange, loading }: RelatoriosFilters
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                <SelectItem value="reembolsado">Reembolsado</SelectItem>
+                {Object.entries(STATUS_RELATORIO_INFO).map(([valor, info]) => (
+                  <SelectItem key={valor} value={valor}>{info.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

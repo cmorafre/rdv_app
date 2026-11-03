@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { AdiantamentoCalculator } from '@/lib/adiantamentos'
 import { escopoDespesa, escopoRelatorio } from '@/lib/escopo'
+import { relatorioEditavel, MSG_NAO_EDITAVEL } from '@/lib/fluxo-relatorio'
 
 const DespesaCreateSchema = z.object({
   relatorioId: z.number().int().positive("Relatório é obrigatório"),
@@ -177,6 +178,10 @@ export async function POST(request: NextRequest) {
         { error: "Relatório não encontrado" },
         { status: 404 }
       )
+    }
+
+    if (!relatorioEditavel(relatorio.status)) {
+      return NextResponse.json({ error: MSG_NAO_EDITAVEL }, { status: 409 })
     }
 
     // Verificar se a categoria existe

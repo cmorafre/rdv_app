@@ -152,7 +152,12 @@ export function NovaDespesaForm() {
 
         if (relatoriosRes.ok) {
           const relatoriosData = await relatoriosRes.json()
-          setRelatorios(relatoriosData.relatorios || [])
+          // Só relatórios que ainda aceitam despesas (não enviados/aprovados)
+          setRelatorios(
+            (relatoriosData.relatorios || []).filter(
+              (r: { acoes?: { editar: boolean } }) => r.acoes?.editar !== false
+            )
+          )
         }
 
         if (categoriasRes.ok) {

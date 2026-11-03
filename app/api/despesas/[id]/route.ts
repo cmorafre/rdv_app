@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { AdiantamentoCalculator } from '@/lib/adiantamentos'
 import { escopoDespesa } from '@/lib/escopo'
+import { relatorioEditavel, MSG_NAO_EDITAVEL } from '@/lib/fluxo-relatorio'
 
 const DespesaUpdateSchema = z.object({
   categoriaId: z.number().int().positive("Categoria é obrigatória").optional(),
@@ -143,7 +144,7 @@ export async function PUT(
     // Verificar se a despesa existe (e é visível para a sessão)
     const existingDespesa = await prisma.despesa.findFirst({
       where: { id, ...escopoDespesa(authResult) },
-      include: { relatorio: { select: { contaId: true, usuarioId: true } } }
+      include: { relatorio: { select: { contaId: true, usuarioId: true, status: true } } }
     })
 
     if (!existingDespesa) {
@@ -151,6 +152,10 @@ export async function PUT(
         { error: "Despesa não encontrada" },
         { status: 404 }
       )
+    }
+
+    if (!relatorioEditavel(existingDespesa.relatorio.status)) {
+      return NextResponse.json({ error: MSG_NAO_EDITAVEL }, { status: 409 })
     }
 
     // Verificar se categoria é Quilometragem
@@ -325,7 +330,7 @@ export async function DELETE(
     // Verificar se a despesa existe (e é visível para a sessão)
     const existingDespesa = await prisma.despesa.findFirst({
       where: { id, ...escopoDespesa(authResult) },
-      include: { relatorio: { select: { contaId: true, usuarioId: true } } }
+      include: { relatorio: { select: { contaId: true, usuarioId: true, status: true } } }
     })
 
     if (!existingDespesa) {
@@ -333,6 +338,10 @@ export async function DELETE(
         { error: "Despesa não encontrada" },
         { status: 404 }
       )
+    }
+
+    if (!relatorioEditavel(existingDespesa.relatorio.status)) {
+      return NextResponse.json({ error: MSG_NAO_EDITAVEL }, { status: 409 })
     }
 
     // Guardar relatorioId antes de deletar

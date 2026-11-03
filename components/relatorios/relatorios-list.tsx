@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
+import { StatusRelatorioBadge } from "@/components/relatorios/status-badge"
+import type { AcoesRelatorio } from "@/lib/status-relatorio"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -38,17 +39,14 @@ interface Relatorio {
   statusReembolso?: string
   tipoReembolso?: string
   createdAt: string
+  usuario?: { id: number; nome: string }
+  acoes?: AcoesRelatorio
 }
 
 interface RelatoriosListProps {
   relatorios: Relatorio[]
   loading?: boolean
   onDelete: (id: number) => void
-}
-
-const statusMap = {
-  em_andamento: { label: "Em Andamento", variant: "secondary" as const },
-  reembolsado: { label: "Reembolsado", variant: "default" as const }
 }
 
 export function RelatoriosList({ relatorios, loading, onDelete }: RelatoriosListProps) {
@@ -188,6 +186,9 @@ export function RelatoriosList({ relatorios, loading, onDelete }: RelatoriosList
                   >
                     {relatorio.titulo}
                   </Link>
+                  {relatorio.usuario && (
+                    <p className="text-xs text-muted-foreground">{relatorio.usuario.nome}</p>
+                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {formatDate(relatorio.dataInicio)} - {formatDate(relatorio.dataFim)}
@@ -199,9 +200,7 @@ export function RelatoriosList({ relatorios, loading, onDelete }: RelatoriosList
                   {relatorio.cliente || <span className="text-muted-foreground">-</span>}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={statusMap[relatorio.status as keyof typeof statusMap].variant}>
-                    {statusMap[relatorio.status as keyof typeof statusMap].label}
-                  </Badge>
+                  <StatusRelatorioBadge status={relatorio.status} />
                 </TableCell>
                 <TableCell className="text-right font-medium">
                   {formatCurrency(relatorio.valorTotal)}
@@ -239,19 +238,23 @@ export function RelatoriosList({ relatorios, loading, onDelete }: RelatoriosList
                         <Download className="h-4 w-4 mr-2" />
                         {downloadingPdfId === relatorio.id ? 'Gerando PDF...' : 'Download PDF'}
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/relatorios/${relatorio.id}/editar`}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => handleDelete(relatorio.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Excluir
-                      </DropdownMenuItem>
+                      {relatorio.acoes?.editar !== false && (
+                        <>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/relatorios/${relatorio.id}/editar`}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Editar
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDelete(relatorio.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
