@@ -18,9 +18,10 @@ model Conta {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  usuarios   Usuario[]
-  relatorios Relatorio[]
-  veiculos   Veiculo[]
+  usuarios     Usuario[]
+  relatorios   Relatorio[]
+  veiculos     Veiculo[]
+  notificacoes Notificacao[]
 
   @@map("contas")
 }
@@ -37,10 +38,12 @@ model Usuario {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  conta               Conta       @relation(fields: [contaId], references: [id])
-  relatorios          Relatorio[] @relation("RelatorioDono")
-  relatoriosAprovados Relatorio[] @relation("RelatorioAprovador")
+  conta               Conta         @relation(fields: [contaId], references: [id])
+  relatorios          Relatorio[]   @relation("RelatorioDono")
+  relatoriosAprovados Relatorio[]   @relation("RelatorioAprovador")
   veiculos            Veiculo[]
+  notificacoes        Notificacao[] @relation("NotificacaoDestinatario")
+  notificacoesGeradas Notificacao[] @relation("NotificacaoAutor")
 
   @@index([contaId])
   @@map("usuarios")
@@ -74,10 +77,11 @@ model Relatorio {
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
   // Relacionamentos
-  despesas    Despesa[]
-  conta       Conta     @relation(fields: [contaId], references: [id])
-  usuario     Usuario   @relation("RelatorioDono", fields: [usuarioId], references: [id])
-  aprovadoPor Usuario?  @relation("RelatorioAprovador", fields: [aprovadoPorId], references: [id])
+  despesas     Despesa[]
+  notificacoes Notificacao[]
+  conta        Conta         @relation(fields: [contaId], references: [id])
+  usuario      Usuario       @relation("RelatorioDono", fields: [usuarioId], references: [id])
+  aprovadoPor  Usuario?      @relation("RelatorioAprovador", fields: [aprovadoPorId], references: [id])
 
   @@index([contaId, usuarioId])
   @@map("relatorios")
@@ -182,4 +186,28 @@ model Comprovante {
   despesa Despesa @relation(fields: [despesaId], references: [id], onDelete: Cascade)
 
   @@map("comprovantes")
+}
+
+// Notificações: avisos de eventos do fluxo de aprovação para um usuário
+// (central no site e no app; e-mail e push usam a mesma linha)
+model Notificacao {
+  id          Int       @id @default(autoincrement())
+  contaId     Int       @map("conta_id")
+  usuarioId   Int       @map("usuario_id") // destinatário
+  autorId     Int?      @map("autor_id") // quem fez a ação
+  relatorioId Int?      @map("relatorio_id")
+  tipo        String // enviado | aprovado | reprovado | reembolsado
+  titulo      String
+  mensagem    String
+  lidaEm      DateTime? @map("lida_em")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  conta     Conta      @relation(fields: [contaId], references: [id])
+  usuario   Usuario    @relation("NotificacaoDestinatario", fields: [usuarioId], references: [id], onDelete: Cascade)
+  autor     Usuario?   @relation("NotificacaoAutor", fields: [autorId], references: [id], onDelete: SetNull)
+  relatorio Relatorio? @relation(fields: [relatorioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, lidaEm])
+  @@index([usuarioId, createdAt])
+  @@map("notificacoes")
 }

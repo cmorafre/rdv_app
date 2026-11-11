@@ -4,6 +4,7 @@ import { prisma } from './db'
 import { requireAuth, type Sessao } from './auth'
 import { escopoRelatorio } from './escopo'
 import { acoesDoRelatorio, podeAprovarProprio, type Acao } from './fluxo-relatorio'
+import { notificarAcao } from './notificacoes'
 
 type Tx = Prisma.TransactionClient
 type Relatorio = Prisma.RelatorioGetPayload<object>
@@ -79,7 +80,9 @@ export async function executarAcao(
       })
       if (count === 0) return null
       if (def.depois) await def.depois(tx, relatorio)
-      return tx.relatorio.findUnique({ where: { id } })
+      const novo = await tx.relatorio.findUnique({ where: { id } })
+      if (novo) await notificarAcao(tx, def.acao, novo, sessao, novo.motivoReprovacao)
+      return novo
     })
 
     if (!atualizado) {
