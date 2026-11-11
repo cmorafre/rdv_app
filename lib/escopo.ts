@@ -30,6 +30,11 @@ export function escopoUsuario(sessao: Sessao): Prisma.UsuarioWhereInput {
   return { contaId: sessao.contaId }
 }
 
+// Notificações: só as do próprio usuário, mesmo para o gestor
+export function escopoNotificacao(sessao: Sessao): Prisma.NotificacaoWhereInput {
+  return { contaId: sessao.contaId, usuarioId: sessao.userId }
+}
+
 // Campos de dono gravados em todo registro novo
 export function novoDono(sessao: Sessao) {
   return { contaId: sessao.contaId, usuarioId: sessao.userId }

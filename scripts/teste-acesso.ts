@@ -37,6 +37,10 @@ const rotas = {
   categorias: () => import(`${R}/categorias/route`),
   categoria: () => import(`${R}/categorias/[id]/route`),
   me: () => import(`${R}/auth/me/route`),
+  notificacoes: () => import(`${R}/notificacoes/route`),
+  contagem: () => import(`${R}/notificacoes/contagem/route`),
+  lida: () => import(`${R}/notificacoes/[id]/lida/route`),
+  lidas: () => import(`${R}/notificacoes/lidas/route`),
 }
 
 let falhas = 0
@@ -65,7 +69,7 @@ async function chama(rota: Rota, metodo: string, token: string | null, opts: { i
 
 async function main() {
   // ---------- Dados ----------
-  await prisma.$executeRawUnsafe('TRUNCATE comprovantes, despesas_quilometragem, despesas, relatorios, veiculos, usuarios, contas, categorias RESTART IDENTITY CASCADE')
+  await prisma.$executeRawUnsafe('TRUNCATE notificacoes, comprovantes, despesas_quilometragem, despesas, relatorios, veiculos, usuarios, contas, categorias RESTART IDENTITY CASCADE')
   const contaA = await prisma.conta.create({ data: { nome: 'Empresa A', tipo: 'empresa' } })
   const contaB = await prisma.conta.create({ data: { nome: 'Empresa B', tipo: 'empresa' } })
   const u = (email: string, nome: string, contaId: number, perfil: string, ativo = true) =>
@@ -300,6 +304,48 @@ async function main() {
   confere('o outro gestor aprova', res.status === 200 && res.json.aprovadoPorId === g2A.id, res.json)
   res = await chama('relatorios', 'GET', T.gA, { query: 'status=enviado' })
   confere('filtro de pendentes funciona', res.json.relatorios.every((x: { status: string }) => x.status === 'enviado'), res.json.total)
+
+  // ---------- Notificações ----------
+  // Eventos acima: uA enviou 3x (gA avisado 3x; cancelar envio não avisa), gA reprovou/aprovou/reembolsou
+  // (uA avisado 3x; extorno não avisa), gA enviou e aprovou o próprio sozinho (ninguém avisado),
+  // gA enviou rg2 com g2A na conta (g2A avisado) e g2A aprovou (gA avisado)
+  console.log('Notificações')
+  const lista = async (token: string, query?: string) => (await chama('notificacoes', 'GET', token, { query })).json
+  confere('sem token → 401', (await chama('notificacoes', 'GET', null)).status === 401)
+  let n = await lista(T.gA)
+  confere('gestor A: 3 envios do usuário + 1 aprovação do outro gestor', n.naoLidas === 4 && n.notificacoes.filter((x: { tipo: string }) => x.tipo === 'enviado').length === 3, n.notificacoes.map((x: { tipo: string }) => x.tipo))
+  confere('nenhum aviso do próprio relatório que o gestor enviou e aprovou sozinho', n.notificacoes.every((x: { relatorioId: number }) => x.relatorioId !== rgA.id))
+  confere('mais nova primeiro, com autor', n.notificacoes[0].tipo === 'aprovado' && n.notificacoes[0].autor?.id === g2A.id, n.notificacoes[0])
+  n = await lista(T.uA)
+  confere('dono: reembolsado, aprovado, reprovado (sem extorno nem cancelamento)', JSON.stringify(n.notificacoes.map((x: { tipo: string }) => x.tipo)) === '["reembolsado","aprovado","reprovado"]', n.notificacoes.map((x: { tipo: string }) => x.tipo))
+  const reprov = n.notificacoes.find((x: { tipo: string }) => x.tipo === 'reprovado')
+  confere('reprovação traz o motivo', reprov?.mensagem.includes('Falta o comprovante do almoço'), reprov?.mensagem)
+  n = await lista(T_g2A)
+  confere('segundo gestor avisado do envio do outro gestor', n.naoLidas === 1 && n.notificacoes[0].tipo === 'enviado' && n.notificacoes[0].relatorioId === rg2.id, n.notificacoes)
+  confere('outra conta não recebe nada', (await lista(T.gB)).naoLidas === 0)
+  const banco = await prisma.notificacao.findMany()
+  confere('conta da notificação é a do relatório', banco.every(x => x.contaId === contaA.id), banco.map(x => x.contaId))
+
+  n = await lista(T.gA, 'limite=2')
+  confere('paginação: limite', n.notificacoes.length === 2 && n.temMais === true, n.notificacoes.length)
+  const pag2 = await lista(T.gA, `limite=10&antesDe=${n.notificacoes[1].id}`)
+  confere('paginação: antesDe', pag2.notificacoes.length === 2 && pag2.temMais === false && pag2.notificacoes.every((x: { id: number }) => x.id < n.notificacoes[1].id), pag2.notificacoes.length)
+
+  res = await chama('contagem', 'GET', T.gA)
+  confere('contagem: não lidas e id da mais recente', res.json.naoLidas === 4 && res.json.ultimaId === n.notificacoes[0].id, res.json)
+  const deGA = n.notificacoes[0].id
+  confere('marcar lida a de outro usuário → 404', (await chama('lida', 'POST', T.uA, { id: deGA })).status === 404)
+  confere('marcar lida a de outra conta → 404', (await chama('lida', 'POST', T.gB, { id: deGA })).status === 404)
+  res = await chama('lida', 'POST', T.gA, { id: deGA })
+  confere('marcar lida → 200', res.status === 200 && !!res.json.lidaEm, res.json)
+  const lidaEm1 = res.json.lidaEm
+  res = await chama('lida', 'POST', T.gA, { id: deGA })
+  confere('marcar de novo mantém a data', res.json.lidaEm === lidaEm1, res.json)
+  confere('contador cai para 3', (await chama('contagem', 'GET', T.gA)).json.naoLidas === 3)
+  confere('filtro só não lidas', (await lista(T.gA, 'naoLidas=true')).notificacoes.length === 3)
+  res = await chama('lidas', 'POST', T.gA)
+  confere('marcar todas como lidas', res.json.marcadas === 3 && (await chama('contagem', 'GET', T.gA)).json.naoLidas === 0, res.json)
+  confere('marcar todas não mexe nas de outro usuário', (await chama('contagem', 'GET', T.uA)).json.naoLidas === 3)
 
   console.log(`\n${total - falhas}/${total} ok`)
   await prisma.$disconnect()
