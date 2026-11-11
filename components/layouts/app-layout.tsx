@@ -14,6 +14,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { Sininho } from "@/components/notificacoes/sininho"
 
 interface BreadcrumbItem {
   label: string
@@ -56,7 +57,8 @@ export function AppLayout({ children, breadcrumbs }: AppLayoutProps) {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-          <div className="ml-auto px-4">
+          <div className="ml-auto flex items-center gap-1 px-4">
+            <Sininho />
             <ThemeToggle />
           </div>
         </header>
