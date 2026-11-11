@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { prisma } from './db'
 import { requireAuth, type Sessao } from './auth'
 import { escopoRelatorio } from './escopo'
 import { acoesDoRelatorio, podeAprovarProprio, type Acao } from './fluxo-relatorio'
-import { notificarAcao } from './notificacoes'
+import { enviarAvisoPorEmail, notificarAcao, type Aviso } from './notificacoes'
+import { emailAtivo } from './email'
 
 type Tx = Prisma.TransactionClient
 type Relatorio = Prisma.RelatorioGetPayload<object>
@@ -73,6 +74,7 @@ export async function executarAcao(
     }
 
     // Grava só se o status não mudou desde a leitura (duas pessoas agindo ao mesmo tempo)
+    let aviso: Aviso | null = null
     const atualizado = await prisma.$transaction(async (tx) => {
       const { count } = await tx.relatorio.updateMany({
         where: { id, status: relatorio.status },
@@ -81,12 +83,18 @@ export async function executarAcao(
       if (count === 0) return null
       if (def.depois) await def.depois(tx, relatorio)
       const novo = await tx.relatorio.findUnique({ where: { id } })
-      if (novo) await notificarAcao(tx, def.acao, novo, sessao, novo.motivoReprovacao)
+      if (novo) aviso = await notificarAcao(tx, def.acao, novo, sessao, novo.motivoReprovacao)
       return novo
     })
 
     if (!atualizado) {
       return NextResponse.json({ error: 'O relatório foi alterado por outra pessoa. Atualize a tela.' }, { status: 409 })
+    }
+
+    // E-mail depois da resposta, só com a transação já gravada
+    const avisoGravado = aviso as Aviso | null
+    if (avisoGravado && emailAtivo()) {
+      after(() => enviarAvisoPorEmail(avisoGravado).catch((e) => console.error('Erro ao enviar e-mails do aviso:', e)))
     }
 
     return NextResponse.json({
