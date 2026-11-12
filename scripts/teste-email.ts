@@ -69,7 +69,7 @@ async function main() {
   confere('texto puro sem HTML escapado', m.texto.includes('<script>alert(1)</script>') && m.texto.includes('Olá, Ana <b>'))
 
   console.log('Destinatários')
-  await prisma.$executeRawUnsafe('TRUNCATE notificacoes, comprovantes, despesas_quilometragem, despesas, relatorios, veiculos, usuarios, contas, categorias RESTART IDENTITY CASCADE')
+  await prisma.$executeRawUnsafe('TRUNCATE dispositivos, notificacoes, comprovantes, despesas_quilometragem, despesas, relatorios, veiculos, usuarios, contas, categorias RESTART IDENTITY CASCADE')
   const conta = await prisma.conta.create({ data: { nome: 'C', tipo: 'empresa' } })
   const ativo = await prisma.usuario.create({ data: { email: 'ativo@x', nome: 'Ativo', senha: 'x', contaId: conta.id } })
   const inativo = await prisma.usuario.create({ data: { email: 'inativo@x', nome: 'Inativo', senha: 'x', contaId: conta.id, ativo: false } })

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse, after } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { prisma } from './db'
 import { requireAuth, type Sessao } from './auth'
@@ -6,6 +6,8 @@ import { escopoRelatorio } from './escopo'
 import { acoesDoRelatorio, podeAprovarProprio, type Acao } from './fluxo-relatorio'
 import { enviarAvisoPorEmail, notificarAcao, type Aviso } from './notificacoes'
 import { emailAtivo } from './email'
+import { enviarAvisoPorPush } from './push'
+import { emSegundoPlano } from './segundo-plano'
 
 type Tx = Prisma.TransactionClient
 type Relatorio = Prisma.RelatorioGetPayload<object>
@@ -91,10 +93,11 @@ export async function executarAcao(
       return NextResponse.json({ error: 'O relatório foi alterado por outra pessoa. Atualize a tela.' }, { status: 409 })
     }
 
-    // E-mail depois da resposta, só com a transação já gravada
+    // E-mail e push depois da resposta, só com a transação já gravada
     const avisoGravado = aviso as Aviso | null
-    if (avisoGravado && emailAtivo()) {
-      after(() => enviarAvisoPorEmail(avisoGravado).catch((e) => console.error('Erro ao enviar e-mails do aviso:', e)))
+    if (avisoGravado) {
+      if (emailAtivo()) emSegundoPlano(() => enviarAvisoPorEmail(avisoGravado))
+      emSegundoPlano(() => enviarAvisoPorPush(avisoGravado))
     }
 
     return NextResponse.json({
