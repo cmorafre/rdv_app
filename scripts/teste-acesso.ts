@@ -41,6 +41,7 @@ const rotas = {
   contagem: () => import(`${R}/notificacoes/contagem/route`),
   lida: () => import(`${R}/notificacoes/[id]/lida/route`),
   lidas: () => import(`${R}/notificacoes/lidas/route`),
+  dispositivos: () => import(`${R}/dispositivos/route`),
 }
 
 let falhas = 0
@@ -69,7 +70,7 @@ async function chama(rota: Rota, metodo: string, token: string | null, opts: { i
 
 async function main() {
   // ---------- Dados ----------
-  await prisma.$executeRawUnsafe('TRUNCATE notificacoes, comprovantes, despesas_quilometragem, despesas, relatorios, veiculos, usuarios, contas, categorias RESTART IDENTITY CASCADE')
+  await prisma.$executeRawUnsafe('TRUNCATE dispositivos, notificacoes, comprovantes, despesas_quilometragem, despesas, relatorios, veiculos, usuarios, contas, categorias RESTART IDENTITY CASCADE')
   const contaA = await prisma.conta.create({ data: { nome: 'Empresa A', tipo: 'empresa' } })
   const contaB = await prisma.conta.create({ data: { nome: 'Empresa B', tipo: 'empresa' } })
   const u = (email: string, nome: string, contaId: number, perfil: string, ativo = true) =>
@@ -346,6 +347,21 @@ async function main() {
   res = await chama('lidas', 'POST', T.gA)
   confere('marcar todas como lidas', res.json.marcadas === 3 && (await chama('contagem', 'GET', T.gA)).json.naoLidas === 0, res.json)
   confere('marcar todas não mexe nas de outro usuário', (await chama('contagem', 'GET', T.uA)).json.naoLidas === 3)
+
+  // ---------- Dispositivos (push) ----------
+  console.log('Dispositivos')
+  const tokA = 'ExponentPushToken[aaaaaaaaaaaaaaaaaaaaaa]'
+  confere('registrar sem login → 401', (await chama('dispositivos', 'POST', null, { body: { token: tokA } })).status === 401)
+  confere('token inválido → 400', (await chama('dispositivos', 'POST', T.uA, { body: { token: 'qualquer' } })).status === 400)
+  confere('registra o celular', (await chama('dispositivos', 'POST', T.uA, { body: { token: tokA, plataforma: 'android' } })).status === 200)
+  confere('registrar de novo não duplica', (await chama('dispositivos', 'POST', T.uA, { body: { token: tokA, plataforma: 'android' } })).status === 200 && (await prisma.dispositivo.count()) === 1)
+  confere('celular fica com o usuário logado', (await prisma.dispositivo.findUnique({ where: { token: tokA } }))?.usuarioId === uA.id)
+  res = await chama('dispositivos', 'DELETE', T.gB, { body: { token: tokA } })
+  confere('outro usuário não remove o celular de ninguém', res.json.removidos === 0 && (await prisma.dispositivo.count()) === 1, res.json)
+  await chama('dispositivos', 'POST', T.gA, { body: { token: tokA, plataforma: 'android' } })
+  confere('troca de conta no mesmo celular passa o token para quem logou', (await prisma.dispositivo.findUnique({ where: { token: tokA } }))?.usuarioId === gA.id)
+  res = await chama('dispositivos', 'DELETE', T.gA, { body: { token: tokA } })
+  confere('sair da conta remove o celular', res.json.removidos === 1 && (await prisma.dispositivo.count()) === 0, res.json)
 
   console.log(`\n${total - falhas}/${total} ok`)
   await prisma.$disconnect()

@@ -44,6 +44,7 @@ model Usuario {
   veiculos            Veiculo[]
   notificacoes        Notificacao[] @relation("NotificacaoDestinatario")
   notificacoesGeradas Notificacao[] @relation("NotificacaoAutor")
+  dispositivos        Dispositivo[]
 
   @@index([contaId])
   @@map("usuarios")
@@ -210,4 +211,19 @@ model Notificacao {
   @@index([usuarioId, lidaEm])
   @@index([usuarioId, createdAt])
   @@map("notificacoes")
+}
+
+// Celulares com o app instalado e logado: token do Expo Push para mandar notificações
+model Dispositivo {
+  id         Int      @id @default(autoincrement())
+  usuarioId  Int      @map("usuario_id")
+  token      String   @unique // ExponentPushToken[...]
+  plataforma String // android | ios
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("dispositivos")
 }
